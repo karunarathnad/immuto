@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.karunarathnad</groupId>
+        <artifactId>immuto-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>immuto-test</artifactId>
+    <name>Immuto :: Integration Tests</name>
+
+    <properties>
+        <!-- Test module — never published to Maven Central -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <gpg.skip>true</gpg.skip>
+        <central.publishing.skip>true</central.publishing.skip>
+    </properties>
+    <description>
+        Integration tests for Immuto. The annotation processor runs during compilation
+        of this module, producing real mapper implementations that are then exercised.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.karunarathnad</groupId>
+            <artifactId>immuto-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.karunarathnad</groupId>
+            <artifactId>immuto-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.karunarathnad</groupId>
+            <artifactId>immuto-processor</artifactId>
+            <!-- test scope: needed on runtime classpath for new RecordMapperProcessor() in tests;
+                 annotationProcessorPaths below handles the APT side separately -->
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.testing.compile</groupId>
+            <artifactId>compile-testing</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- let the processor run on this module's sources -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.github.karunarathnad</groupId>
+                            <artifactId>immuto-processor</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

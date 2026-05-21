@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.karunarathnad</groupId>
+        <artifactId>immuto-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>immuto-processor</artifactId>
+    <name>Immuto :: Processor</name>
+    <description>
+        APT annotation processor for Immuto.
+        Generates type-safe mapper implementations that call Java Records'
+        canonical constructors — no reflection, no setters, no surprises.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.karunarathnad</groupId>
+            <artifactId>immuto-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.karunarathnad</groupId>
+            <artifactId>immuto-core</artifactId>
+        </dependency>
+
+        <!-- Auto-Service: generates META-INF/services/javax.annotation.processing.Processor -->
+        <dependency>
+            <groupId>com.google.auto.service</groupId>
+            <artifactId>auto-service</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- JavaPoet: fluent source code generation -->
+        <dependency>
+            <groupId>com.squareup</groupId>
+            <artifactId>javapoet</artifactId>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>com.google.testing.compile</groupId>
+            <artifactId>compile-testing</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- disable processing of our own processor during its own compile -->
+                    <compilerArgs>
+                        <arg>-proc:none</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
