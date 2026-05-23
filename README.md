@@ -1,6 +1,8 @@
 # Immuto - Java Records-First Object Mapper
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.karunarathnad/immuto-core)](https://central.sonatype.com/namespace/io.github.karunarathnad)
+[![CI](https://github.com/karunarathnad/immuto/actions/workflows/ci.yml/badge.svg)](https://github.com/karunarathnad/immuto/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/karunarathnad/immuto/branch/master/graph/badge.svg)](https://codecov.io/gh/karunarathnad/immuto)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-blue.svg)](https://openjdk.org/projects/jdk/21/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
@@ -42,21 +44,21 @@ cannot be mapped at compile time, the build fails with a clear error message.
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-annotations</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 
 <!-- Core: the only jar on your runtime classpath -->
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-core</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 
 <!-- Processor: runs during javac, never on the runtime classpath -->
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-processor</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -72,7 +74,7 @@ Tell the compiler plugin where to find the processor:
             <path>
                 <groupId>io.github.karunarathnad</groupId>
                 <artifactId>immuto-processor</artifactId>
-                <version>1.0.0</version>
+                <version>1.0.1</version>
             </path>
         </annotationProcessorPaths>
     </configuration>
@@ -150,6 +152,31 @@ The processor validates every target record component before your build finishes
 - Unmapped components → **build error** (not a silent null at runtime)
 - Type mismatch with no registered converter → **build error**
 - `@RecordMapper` on a class instead of an interface → **build error**
+
+Here is what those errors look like — clear, actionable messages pointing at the exact mapper method:
+
+**Unmapped component:**
+```
+error: [Immuto] Target component 'fullName' has no matching source component.
+       Use @Mapping(target="fullName", ignore=true) to suppress this error.
+       PersonDTO toDto(PersonEntity source);
+```
+
+**Type mismatch without a converter:**
+```
+error: [Immuto] Cannot auto-convert component 'createdAt': no TypeConverter registered for
+       java.time.Instant → java.lang.String. Register a TypeConverter or add @Mapping(expression=...).
+       PersonDTO toDto(PersonEntity source);
+```
+
+**`@RecordMapper` on a class:**
+```
+error: [Immuto] @RecordMapper must annotate an interface, found: CLASS
+       public class PersonMapper { ... }
+```
+
+Compare this to MapStruct's equivalent errors, which often reference internal code-generation internals.
+Each Immuto error names the offending component and tells you exactly how to fix it.
 
 ### Nested Record mapping
 
