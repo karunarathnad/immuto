@@ -1,7 +1,7 @@
 # Immuto - Java Records-First Object Mapper
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.karunarathnad/immuto-core)](https://central.sonatype.com/namespace/io.github.karunarathnad)
-[![CI](https://github.com/karunarathnad/immuto/actions/workflows/ci.yml/badge.svg)](https://github.com/karunarathnad/immuto/actions/workflows/ci.yml)
+[![CI](https://github.com/karunarathnad/immuto/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/karunarathnad/immuto/actions/workflows/ci.yml)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-blue.svg)](https://openjdk.org/projects/jdk/21/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
