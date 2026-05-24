@@ -25,7 +25,6 @@ Immuto uses **canonical constructors** as the sole mapping target - no setters, 
 | MapStruct | Partial (bolted-on) | Compile-time APT → **setters first** | Manual | No |
 | ModelMapper | Broken (reflection field-set) | **Runtime reflection** | No | No |
 | Orika | Broken (bytecode setters) | **Runtime bytecode gen** | No | No |
-
 | JMapper | Partial | **Runtime byte manipulation** | No | No |
 | **Immuto** | **First-class** | **Compile-time APT → canonical constructor** | **`@NullSafe`** | **Yes** |
 
