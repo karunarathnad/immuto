@@ -25,6 +25,7 @@ Immuto uses **canonical constructors** as the sole mapping target - no setters, 
 | MapStruct | Partial (bolted-on) | Compile-time APT → **setters first** | Manual | No |
 | ModelMapper | Broken (reflection field-set) | **Runtime reflection** | No | No |
 | Orika | Broken (bytecode setters) | **Runtime bytecode gen** | No | No |
+
 | JMapper | Partial | **Runtime byte manipulation** | No | No |
 | **Immuto** | **First-class** | **Compile-time APT → canonical constructor** | **`@NullSafe`** | **Yes** |
 
@@ -38,26 +39,28 @@ cannot be mapped at compile time, the build fails with a clear error message.
 
 ### 1. Add dependencies
 
+**Maven**
+
 ```xml
 <!-- Annotations: only needed at compile time; you can mark it optional -->
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-annotations</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
 </dependency>
 
 <!-- Core: the only jar on your runtime classpath -->
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-core</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
 </dependency>
 
 <!-- Processor: runs during javac, never on the runtime classpath -->
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-processor</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -73,11 +76,31 @@ Tell the compiler plugin where to find the processor:
             <path>
                 <groupId>io.github.karunarathnad</groupId>
                 <artifactId>immuto-processor</artifactId>
-                <version>1.0.1</version>
+                <version>1.1.0</version>
             </path>
         </annotationProcessorPaths>
     </configuration>
 </plugin>
+```
+
+**Gradle**
+
+```groovy
+dependencies {
+    implementation   'io.github.karunarathnad:immuto-core:1.1.0'
+    compileOnly      'io.github.karunarathnad:immuto-annotations:1.1.0'
+    annotationProcessor 'io.github.karunarathnad:immuto-processor:1.1.0'
+}
+```
+
+Or with the Kotlin DSL:
+
+```kotlin
+dependencies {
+    implementation("io.github.karunarathnad:immuto-core:1.1.0")
+    compileOnly("io.github.karunarathnad:immuto-annotations:1.1.0")
+    annotationProcessor("io.github.karunarathnad:immuto-processor:1.1.0")
+}
 ```
 
 ### 2. Define your Records
@@ -244,6 +267,90 @@ public interface EventMapper {
 }
 ```
 
+### Spring / CDI integration
+
+Add `componentModel = "spring"` to have the processor annotate the generated implementation
+with `@Component`, making it injectable via `@Autowired` or constructor injection:
+
+```java
+@RecordMapper(componentModel = "spring")
+public interface PersonMapper {
+    PersonDTO toDto(PersonEntity source);
+}
+```
+
+Generated output (excerpt):
+
+```java
+@Component
+@Generated("io.github.karunarathnad.immuto.processor.RecordMapperProcessor")
+public final class PersonMapperImpl implements PersonMapper, ImmutoMapper {
+    ...
+}
+```
+
+Then inject it like any other Spring bean:
+
+```java
+@Service
+public class PersonService {
+    private final PersonMapper mapper;
+
+    public PersonService(PersonMapper mapper) {   // constructor injection
+        this.mapper = mapper;
+    }
+}
+```
+
+> Note: add `spring-context` to your classpath so `@Component` resolves at compile time.
+> Immuto itself has no Spring dependency — the annotation is generated as a plain string.
+
+### `Collection<Record>` mapping
+
+Beyond `List`, Immuto 1.1.0 also generates mapping code for `Set<Record>` and `Map<K, Record>`:
+
+```java
+public record DeptEntity(Set<EmployeeEntity> members) {}
+public record DeptDTO   (Set<EmployeeDTO>    members) {}
+
+public record IndexEntity(Map<String, ProjectEntity> projects) {}
+public record IndexDTO   (Map<String, ProjectDTO>    projects) {}
+```
+
+Both are handled automatically by name-matching — no `@Mapping` annotation required.
+The generated code uses `Collectors.toUnmodifiableSet()` and `Collectors.toUnmodifiableMap()`
+so the results are always unmodifiable.
+
+### MappingContext
+
+`MappingContext` threads arbitrary key/value data through a mapping call tree — useful for
+tenant IDs, locale, audit metadata, or any cross-cutting concern:
+
+```java
+MappingContext ctx = MappingContext.of("tenantId", "acme");
+
+// Untyped — caller must cast
+Optional<String> tenant = ctx.get("tenantId");
+
+// Typed — preferred; throws ClassCastException with a clear message on type mismatch
+Optional<String> tenant = ctx.get("tenantId", String.class);
+```
+
+Pass it into custom `TypeConverter` implementations:
+
+```java
+public class TenantAwareConverter implements TypeConverter<PriceEntity, PriceDTO> {
+    @Override
+    public PriceDTO convert(PriceEntity source, MappingContext ctx) {
+        String tenant = ctx.get("tenantId", String.class).orElseThrow();
+        return new PriceDTO(source.amount(), tenant);
+    }
+}
+```
+
+`MappingContext.empty()` returns a shared immutable singleton — calling `put()` on it throws
+`UnsupportedOperationException`. Construct a mutable context with `MappingContext.of(...)`.
+
 ### Fluent runtime API (no annotation processor required)
 
 For dynamic environments, tests, or cases where APT is unavailable:
@@ -278,15 +385,17 @@ io.github.karunarathnad
 
 ## Compared to MapStruct
 
-| | MapStruct                                     | Immuto |
-|---|-----------------------------------------------|---|
-| Target paradigm | JavaBeans (setters)                           | Java Records (canonical constructor only) |
-| Records support | Partial - requires mutable builder workaround | First-class |
-| Validation timing | Compile time                                  | Compile time |
-| Runtime reflection | None (generated code)                         | None (generated code) |
-| Sealed classes | No                                            | Yes |
-| `Optional` components | Manual                                        | `@NullSafe` |
-| Fluent runtime API | No                                            | Yes (`FluentMapper`) |
+| Feature | MapStruct | Immuto |
+|---|---|---|
+| Target paradigm | JavaBeans (setters) | Java Records (canonical constructor only) |
+| Records support | Partial — requires mutable builder workaround | First-class |
+| Validation timing | Compile time | Compile time |
+| Runtime reflection | None (generated code) | None (generated code) |
+| Sealed classes | No | Yes |
+| `Optional` components | Manual | `@NullSafe` |
+| `Set<Record>` / `Map<K,Record>` | Manual | Auto-mapped |
+| Spring integration | `componentModel = "spring"` | `componentModel = "spring"` |
+| Fluent runtime API | No | Yes (`FluentMapper`) |
 
 ---
 
