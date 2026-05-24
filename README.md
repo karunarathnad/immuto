@@ -398,6 +398,12 @@ io.github.karunarathnad
 
 ---
 
+## Examples
+
+| Example | Description |
+|---|---|
+| [Spring Boot Quickstart](examples/spring-boot-quickstart) | Spring Boot 3 app with constructor injection, expression mapping, and a REST controller |
+
 ## Source & Issues
 
 GitHub: <https://github.com/karunarathnad/immuto>
