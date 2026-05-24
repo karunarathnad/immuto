@@ -196,4 +196,124 @@ class ProcessorCompilationTest {
                 .contentsAsUtf8String()
                 .contains("true");
     }
+
+    @Test
+    void springComponentModel_generatesAtComponentAnnotation() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        // Stub @Component so javac can resolve it without a Spring dependency
+                        JavaFileObjects.forSourceString("org.springframework.stereotype.Component",
+                                """
+                                package org.springframework.stereotype;
+                                import java.lang.annotation.*;
+                                @Target(ElementType.TYPE) @Retention(RetentionPolicy.RUNTIME)
+                                public @interface Component { String value() default ""; }
+                                """),
+                        JavaFileObjects.forSourceString("test.Thing",
+                                """
+                                package test;
+                                public record Thing(Long id) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.ThingDTO",
+                                """
+                                package test;
+                                public record ThingDTO(Long id) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.ThingMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.RecordMapper;
+                                @RecordMapper(componentModel = "spring")
+                                public interface ThingMapper {
+                                    ThingDTO toDto(Thing source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeededWithoutWarnings();
+        var generatedSource = assertThat(compilation).generatedSourceFile("test.ThingMapperImpl")
+                .contentsAsUtf8String();
+        generatedSource.contains("@Component");
+        generatedSource.contains("import org.springframework.stereotype.Component;");
+    }
+
+    @Test
+    void setMapping_generatesStreamCollectToUnmodifiableSet() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.TagEntity",
+                                """
+                                package test;
+                                public record TagEntity(String value) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.TagDTO",
+                                """
+                                package test;
+                                public record TagDTO(String value) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.Article",
+                                """
+                                package test;
+                                import java.util.Set;
+                                public record Article(String title, Set<TagEntity> tags) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.ArticleDTO",
+                                """
+                                package test;
+                                import java.util.Set;
+                                public record ArticleDTO(String title, Set<TagDTO> tags) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.ArticleMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.RecordMapper;
+                                @RecordMapper
+                                public interface ArticleMapper {
+                                    ArticleDTO toDto(Article source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeeded();
+        assertThat(compilation).generatedSourceFile("test.ArticleMapperImpl")
+                .contentsAsUtf8String()
+                .contains("toUnmodifiableSet()");
+    }
+
+    @Test
+    void inheritInverseWithExpression_producesCompileError() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.PersonEntity",
+                                """
+                                package test;
+                                public record PersonEntity(String firstName, String lastName) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.PersonDTO",
+                                """
+                                package test;
+                                public record PersonDTO(String fullName) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.PersonMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.*;
+                                @RecordMapper
+                                public interface PersonMapper {
+                                    @Mapping(target = "fullName",
+                                             expression = "java(source.firstName() + \\" \\" + source.lastName())")
+                                    PersonDTO toDto(PersonEntity source);
+
+                                    @InheritInverseConfiguration(name = "toDto")
+                                    PersonEntity toEntity(PersonDTO source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("cannot auto-invert");
+    }
 }

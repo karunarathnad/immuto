@@ -57,4 +57,24 @@ class MappingContextTest {
         assertThatThrownBy(() -> ctx.attributes().put("extra", "illegal"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
+
+    @Test
+    void typedGet_returnsCorrectValue() {
+        MappingContext ctx = MappingContext.of("tenantId", "acme");
+        Optional<String> result = ctx.get("tenantId", String.class);
+        assertThat(result).contains("acme");
+    }
+
+    @Test
+    void typedGet_absentKey_returnsEmpty() {
+        MappingContext ctx = MappingContext.of("key", "value");
+        assertThat(ctx.get("missing", String.class)).isEmpty();
+    }
+
+    @Test
+    void typedGet_wrongType_throwsClassCastException() {
+        MappingContext ctx = MappingContext.of("count", 42);
+        assertThatThrownBy(() -> ctx.get("count", String.class))
+                .isInstanceOf(ClassCastException.class);
+    }
 }
