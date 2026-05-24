@@ -384,17 +384,17 @@ io.github.karunarathnad
 
 ## Compared to MapStruct
 
-| Feature | MapStruct | Immuto |
-|---|---|---|
-| Target paradigm | JavaBeans (setters) | Java Records (canonical constructor only) |
-| Records support | Partial — requires mutable builder workaround | First-class |
-| Validation timing | Compile time | Compile time |
-| Runtime reflection | None (generated code) | None (generated code) |
-| Sealed classes | No | Yes |
-| `Optional` components | Manual | `@NullSafe` |
-| `Set<Record>` / `Map<K,Record>` | Manual | Auto-mapped |
-| Spring integration | `componentModel = "spring"` | `componentModel = "spring"` |
-| Fluent runtime API | No | Yes (`FluentMapper`) |
+| Feature | MapStruct                                     | Immuto |
+|---|-----------------------------------------------|---|
+| Target paradigm | JavaBeans (setters)                           | Java Records (canonical constructor only) |
+| Records support | Partial - requires mutable builder workaround | First-class |
+| Validation timing | Compile time                                  | Compile time |
+| Runtime reflection | None (generated code)                         | None (generated code) |
+| Sealed classes | No                                            | Yes |
+| `Optional` components | Manual                                        | `@NullSafe` |
+| `Set<Record>` / `Map<K,Record>` | Manual                                        | Auto-mapped |
+| Spring integration | `componentModel = "spring"`                   | `componentModel = "spring"` |
+| Fluent runtime API | No                                            | Yes (`FluentMapper`) |
 
 ---
 
@@ -403,6 +403,8 @@ io.github.karunarathnad
 | Example | Description |
 |---|---|
 | [Spring Boot Quickstart](examples/spring-boot-quickstart) | Spring Boot 3 app with constructor injection, expression mapping, and a REST controller |
+
+---
 
 ## Source & Issues
 
