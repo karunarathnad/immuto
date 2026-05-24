@@ -283,6 +283,222 @@ class ProcessorCompilationTest {
     }
 
     @Test
+    void nullSafeMapping_returnsOptional() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.Addr",
+                                """
+                                package test;
+                                public record Addr(String city) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.AddrDTO",
+                                """
+                                package test;
+                                public record AddrDTO(String city) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.AddrMapper",
+                                """
+                                package test;
+                                import java.util.Optional;
+                                import io.github.karunarathnad.immuto.annotation.*;
+                                @RecordMapper
+                                public interface AddrMapper {
+                                    @NullSafe
+                                    Optional<AddrDTO> toDto(Addr source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeeded();
+        var src = assertThat(compilation).generatedSourceFile("test.AddrMapperImpl")
+                .contentsAsUtf8String();
+        src.contains("Optional<AddrDTO>");
+        src.contains("Optional.empty()");
+        src.contains("Optional.of(");
+    }
+
+    @Test
+    void ignoredMapping_suppressesUnmappedError() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.Src",
+                                """
+                                package test;
+                                public record Src(Long id) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.Tgt",
+                                """
+                                package test;
+                                public record Tgt(Long id, String extra) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.SrcMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.*;
+                                @RecordMapper
+                                public interface SrcMapper {
+                                    @Mapping(target = "extra", ignore = true)
+                                    Tgt toTgt(Src source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeeded();
+        assertThat(compilation).generatedSourceFile("test.SrcMapperImpl")
+                .contentsAsUtf8String()
+                .contains("null");
+    }
+
+    @Test
+    void listRecordMapping_generatesStreamCollect() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.TagEntity",
+                                """
+                                package test;
+                                public record TagEntity(String value) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.TagDTO",
+                                """
+                                package test;
+                                public record TagDTO(String value) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.Post",
+                                """
+                                package test;
+                                import java.util.List;
+                                public record Post(String title, List<TagEntity> tags) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.PostDTO",
+                                """
+                                package test;
+                                import java.util.List;
+                                public record PostDTO(String title, List<TagDTO> tags) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.PostMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.RecordMapper;
+                                @RecordMapper
+                                public interface PostMapper {
+                                    PostDTO toDto(Post source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeeded();
+        assertThat(compilation).generatedSourceFile("test.PostMapperImpl")
+                .contentsAsUtf8String()
+                .contains("toUnmodifiableList()");
+    }
+
+    @Test
+    void inheritInverseConfiguration_happyPath() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.Order",
+                                """
+                                package test;
+                                public record Order(Long id, String ref) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.OrderDTO",
+                                """
+                                package test;
+                                public record OrderDTO(Long id, String ref) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.OrderMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.*;
+                                @RecordMapper
+                                public interface OrderMapper {
+                                    OrderDTO toDto(Order source);
+                                    @InheritInverseConfiguration(name = "toDto")
+                                    Order toEntity(OrderDTO source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeededWithoutWarnings();
+        assertThat(compilation).generatedSourceFile("test.OrderMapperImpl")
+                .contentsAsUtf8String()
+                .contains("toEntity");
+    }
+
+    @Test
+    void typeMismatch_withoutConverter_producesCompileError() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.Event",
+                                """
+                                package test;
+                                import java.time.Instant;
+                                public record Event(Long id, Instant createdAt) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.EventDTO",
+                                """
+                                package test;
+                                public record EventDTO(Long id, String createdAt) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.EventMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.RecordMapper;
+                                @RecordMapper
+                                public interface EventMapper {
+                                    EventDTO toDto(Event source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("createdAt");
+    }
+
+    @Test
+    void dotNotationSource_resolvesNestedAccessor() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.Address",
+                                """
+                                package test;
+                                public record Address(String city) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.Customer",
+                                """
+                                package test;
+                                public record Customer(Long id, Address address) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.CustomerDTO",
+                                """
+                                package test;
+                                public record CustomerDTO(Long id, String city) {}
+                                """),
+                        JavaFileObjects.forSourceString("test.CustomerMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.*;
+                                @RecordMapper
+                                public interface CustomerMapper {
+                                    @Mapping(target = "city", source = "address.city")
+                                    CustomerDTO toDto(Customer source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeeded();
+        assertThat(compilation).generatedSourceFile("test.CustomerMapperImpl")
+                .contentsAsUtf8String()
+                .contains("source.address().city()");
+    }
+
+    @Test
     void inheritInverseWithExpression_producesCompileError() {
         Compilation compilation = javac()
                 .withProcessors(new RecordMapperProcessor())
