@@ -174,7 +174,7 @@ The processor validates every target record component before your build finishes
 - Type mismatch with no registered converter → **build error**
 - `@RecordMapper` on a class instead of an interface → **build error**
 
-Here is what those errors look like — clear, actionable messages pointing at the exact mapper method:
+Here is what those errors look like - clear, actionable messages pointing at the exact mapper method:
 
 **Unmapped component:**
 ```
@@ -365,7 +365,7 @@ PersonDTO dto        = mapper.map(entity);
 List<PersonDTO> dtos = mapper.mapAll(entities);
 ```
 
-> Note: `FluentMapper` *does* use `java.lang.reflect` to read record components at runtime —
+> Note: `FluentMapper` *does* use `java.lang.reflect` to read record components at runtime -
 > it is the explicit opt-in fallback for when you cannot use the annotation processor.
 > The APT-generated path is always reflection-free.
 
