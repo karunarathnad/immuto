@@ -19,7 +19,7 @@ A minimal runnable example showing how to use [Immuto](https://github.com/karuna
 | Requirement | Version |
 |---|---|
 | Java | 21+ |
-| Maven | 3.9+ |
+| Maven | 3.6.3+ |
 | Spring Boot | 3.2+ |
 
 ---
