@@ -52,6 +52,21 @@ public final class MappingContext {
         return Optional.ofNullable((T) attributes.get(key));
     }
 
+    /**
+     * Returns the value for {@code key} cast to {@code type}, or empty if absent.
+     *
+     * <p>Prefer this overload over {@link #get(String)} when the target type is known
+     * at the call site — it produces a clearer {@link ClassCastException} message on
+     * type mismatches and removes the need for an unchecked cast on the caller side.
+     *
+     * @throws ClassCastException if the stored value is not an instance of {@code type}
+     */
+    public <T> Optional<T> get(String key, Class<T> type) {
+        Object value = attributes.get(key);
+        if (value == null) return Optional.empty();
+        return Optional.of(type.cast(value));
+    }
+
     /** Stores {@code value} under {@code key}. Returns {@code this} for chaining. */
     public MappingContext put(String key, Object value) {
         if (this == EMPTY) {
