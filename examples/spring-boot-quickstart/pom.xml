@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>io.github.karunarathnad.immuto.example</groupId>
+    <artifactId>spring-boot-quickstart</artifactId>
+    <version>1.0.0</version>
+    <name>Immuto Spring Boot Quickstart</name>
+    <description>Demonstrates Immuto record mapping in a Spring Boot 3 application.</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <immuto.version>1.1.0</immuto.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.karunarathnad</groupId>
+            <artifactId>immuto-core</artifactId>
+            <version>${immuto.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.karunarathnad</groupId>
+            <artifactId>immuto-annotations</artifactId>
+            <version>${immuto.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.karunarathnad</groupId>
+            <artifactId>immuto-processor</artifactId>
+            <version>${immuto.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.github.karunarathnad</groupId>
+                            <artifactId>immuto-processor</artifactId>
+                            <version>${immuto.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
