@@ -61,6 +61,9 @@ public final class MapperCodeGenerator {
     private void writeImports(PrintWriter w, MapperModel model) {
         w.println("import io.github.karunarathnad.immuto.core.ImmutoMapper;");
         w.println("import javax.annotation.processing.Generated;");
+        if ("spring".equals(model.componentModel())) {
+            w.println("import org.springframework.stereotype.Component;");
+        }
         boolean needsOptional = model.methods().stream().anyMatch(MapperMethodModel::isNullSafe);
         if (needsOptional) {
             w.println("import java.util.Optional;");
@@ -76,6 +79,9 @@ public final class MapperCodeGenerator {
     }
 
     private void writeClassHeader(PrintWriter w, MapperModel model) {
+        if ("spring".equals(model.componentModel())) {
+            w.println("@Component");
+        }
         w.println("@Generated(");
         w.println("    value = \"" + PROCESSOR + "\",");
         w.println("    date = \"" + LocalDate.now() + "\"");

@@ -80,7 +80,8 @@ public class RecordMapperProcessor extends AbstractProcessor {
             if (model != null) methodModels.add(model);
         }
 
-        MapperModel mapperModel = new MapperModel(packageName, simpleName, implName, methodModels);
+        MapperModel mapperModel = new MapperModel(packageName, simpleName, implName, methodModels,
+                annotation.componentModel());
         generator.generate(mapperModel);
     }
 
@@ -250,6 +251,41 @@ public class RecordMapperProcessor extends AbstractProcessor {
                 }
             }
 
+            // Set<Record> → mapped set
+            if (isSet(srcType) && isSet(tgtType)) {
+                TypeMirror srcElemType = typeArgument(srcType, 0);
+                TypeMirror tgtElemType = typeArgument(tgtType, 0);
+                TypeElement srcSetElem = asTypeElement(srcElemType);
+                TypeElement tgtSetElem = asTypeElement(tgtElemType);
+                if (srcSetElem != null && isRecord(srcSetElem)
+                        && tgtSetElem != null && isRecord(tgtSetElem)) {
+                    return MappingModel.direct(compName,
+                            sourceParam + "." + compName + "() == null ? null : "
+                                    + sourceParam + "." + compName + "().stream()"
+                                    + ".map(e -> io.github.karunarathnad.immuto.core.RecordIntrospector"
+                                    + ".shallowCopy(e, " + tgtSetElem.getQualifiedName() + ".class))"
+                                    + ".collect(java.util.stream.Collectors.toUnmodifiableSet())");
+                }
+            }
+
+            // Map<K, Record> → mapped map (keys pass through, values are converted)
+            if (isMap(srcType) && isMap(tgtType)) {
+                TypeMirror srcValType = typeArgument(srcType, 1);
+                TypeMirror tgtValType = typeArgument(tgtType, 1);
+                TypeElement srcMapVal = asTypeElement(srcValType);
+                TypeElement tgtMapVal = asTypeElement(tgtValType);
+                if (srcMapVal != null && isRecord(srcMapVal)
+                        && tgtMapVal != null && isRecord(tgtMapVal)) {
+                    return MappingModel.direct(compName,
+                            sourceParam + "." + compName + "() == null ? null : "
+                                    + sourceParam + "." + compName + "().entrySet().stream()"
+                                    + ".collect(java.util.stream.Collectors.toUnmodifiableMap("
+                                    + "java.util.Map.Entry::getKey, "
+                                    + "e -> io.github.karunarathnad.immuto.core.RecordIntrospector"
+                                    + ".shallowCopy(e.getValue(), " + tgtMapVal.getQualifiedName() + ".class)))");
+                }
+            }
+
             // Optional<Record> unwrap/wrap
             if (isOptional(srcType) && isOptional(tgtType)) {
                 return MappingModel.direct(compName, sourceParam + "." + compName + "()");
@@ -319,6 +355,12 @@ public class RecordMapperProcessor extends AbstractProcessor {
         Map<String, RecordComponentElement> newSourceMap = new ArrayList<>(newSource.getRecordComponents())
                 .stream().collect(Collectors.toMap(c -> c.getSimpleName().toString(), c -> c));
 
+        // Expression-mapped forward targets cannot be automatically inverted
+        Set<String> expressionMappedTargets = Arrays.stream(fwdMappings)
+                .filter(m -> !m.expression().isEmpty())
+                .map(Mapping::target)
+                .collect(Collectors.toSet());
+
         for (RecordComponentElement targetComp : new ArrayList<>(newTarget.getRecordComponents())) {
             String compName = targetComp.getSimpleName().toString();
 
@@ -341,6 +383,16 @@ public class RecordMapperProcessor extends AbstractProcessor {
                 invertedMappings.add(MappingModel.direct(compName,
                         sourceParamName + "." + compName + "()"));
             } else {
+                // Component not in the inverse source — was it consumed by a forward expression?
+                if (!expressionMappedTargets.isEmpty()) {
+                    error(method, "@InheritInverseConfiguration: cannot auto-invert component '"
+                            + compName + "' in " + newTarget.getSimpleName()
+                            + " — it has no matching component in " + newSource.getSimpleName()
+                            + " because the forward method used expression mapping(s) for: "
+                            + expressionMappedTargets
+                            + ". Add @Mapping(target=\"" + compName + "\", expression=...) "
+                            + "on this method to supply the inverse explicitly.");
+                }
                 invertedMappings.add(MappingModel.ignored(compName));
             }
         }
@@ -407,6 +459,18 @@ public class RecordMapperProcessor extends AbstractProcessor {
         if (mirror.getKind() != TypeKind.DECLARED) return false;
         TypeElement elem = (TypeElement) ((DeclaredType) mirror).asElement();
         return elem.getQualifiedName().toString().equals("java.util.List");
+    }
+
+    private boolean isSet(TypeMirror mirror) {
+        if (mirror.getKind() != TypeKind.DECLARED) return false;
+        TypeElement elem = (TypeElement) ((DeclaredType) mirror).asElement();
+        return elem.getQualifiedName().toString().equals("java.util.Set");
+    }
+
+    private boolean isMap(TypeMirror mirror) {
+        if (mirror.getKind() != TypeKind.DECLARED) return false;
+        TypeElement elem = (TypeElement) ((DeclaredType) mirror).asElement();
+        return elem.getQualifiedName().toString().equals("java.util.Map");
     }
 
     private boolean isOptional(TypeMirror mirror) {
