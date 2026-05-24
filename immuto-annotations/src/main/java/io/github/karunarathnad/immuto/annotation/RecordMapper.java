@@ -41,4 +41,18 @@ public @interface RecordMapper {
      * components instead of failing the build.
      */
     boolean warnOnUnmappedTargetComponents() default false;
+
+    /**
+     * Controls which dependency-injection framework annotation is placed on the
+     * generated implementation class.
+     *
+     * <ul>
+     *   <li>{@code ""} (default) — no DI annotation; obtain instances via
+     *       {@link io.github.karunarathnad.immuto.core.Immuto#getMapper(Class)}</li>
+     *   <li>{@code "spring"} — annotates the generated class with
+     *       {@code @org.springframework.stereotype.Component} so it can be
+     *       {@code @Autowired} directly</li>
+     * </ul>
+     */
+    String componentModel() default "";
 }
