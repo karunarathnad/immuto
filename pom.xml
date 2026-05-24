@@ -6,7 +6,7 @@
 
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-parent</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <packaging>pom</packaging>
 
     <name>Immuto :: Parent</name>
