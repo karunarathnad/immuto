@@ -56,6 +56,50 @@ class TypeConverterTest {
         assertThat(mapper.map(new MoneyEntity(new BigDecimal("5"))).amount()).isEqualTo("5.00");
     }
 
+    record IntEntity(int code) {}
+    record IntDTO(String code) {}
+
+    @Test
+    void typedConverter_onlyInvokedForMatchingSourceType() {
+        // Register a String→String converter and a BigDecimal→String converter.
+        // The BD converter must not be invoked for the String value.
+        TypeConverter<String, String> stringConverter = (src, ctx) -> "str:" + src;
+        TypeConverter<BigDecimal, String> bdConverter = (src, ctx) -> "bd:" + src.toPlainString();
+
+        record Dual(String label, BigDecimal amount) {}
+        record DualDTO(String label, String amount) {}
+
+        FluentMapper<Dual, DualDTO> mapper = FluentMapper
+                .from(Dual.class)
+                .to(DualDTO.class)
+                .converter(String.class, stringConverter)
+                .converter(BigDecimal.class, bdConverter)
+                .build();
+
+        DualDTO dto = mapper.map(new Dual("hello", new BigDecimal("7.5")));
+        assertThat(dto.label()).isEqualTo("str:hello");
+        assertThat(dto.amount()).isEqualTo("bd:7.5");
+    }
+
+    @Test
+    void typedConverter_internalClassCastException_propagates() {
+        TypeConverter<BigDecimal, String> buggyConverter = (src, ctx) -> {
+            // Simulated internal bug: incorrect cast inside converter body
+            @SuppressWarnings("unchecked")
+            java.util.List<String> wrongCast = (java.util.List<String>) (Object) src;
+            return wrongCast.get(0);
+        };
+
+        FluentMapper<MoneyEntity, MoneyDTO> mapper = FluentMapper
+                .from(MoneyEntity.class)
+                .to(MoneyDTO.class)
+                .converter(BigDecimal.class, buggyConverter)
+                .build();
+
+        assertThatThrownBy(() -> mapper.map(new MoneyEntity(new BigDecimal("5"))))
+                .isInstanceOf(ClassCastException.class);
+    }
+
     @Test
     void converterWithContext_canAccessContextValues() {
         TypeConverter<BigDecimal, String> converter = (src, ctx) -> {

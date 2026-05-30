@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
@@ -104,5 +105,43 @@ class FluentMapperTest {
                 .build();
 
         assertThat(mapper.mapAll(null)).isNull();
+    }
+
+    @Test
+    void nestedRecord_withNullValue_mapsToNullComponent() {
+        FluentMapper<PersonEntity, PersonDTO> mapper = FluentMapper
+                .from(PersonEntity.class)
+                .to(PersonDTO.class)
+                .override("fullName", p -> p.firstName() + " " + p.lastName())
+                .build();
+
+        PersonEntity entity = new PersonEntity(
+                1L, "John", "Doe", "john@example.com",
+                LocalDate.of(1990, 1, 1), null, List.of(), null);
+
+        PersonDTO dto = mapper.map(entity);
+
+        assertThat(dto.address()).isNull();
+        assertThat(dto.fullName()).isEqualTo("John Doe");
+    }
+
+    @Test
+    void mapAll_withNullElementsInList_preservesNulls() {
+        FluentMapper<ProductEntity, ProductDTO> mapper = FluentMapper
+                .from(ProductEntity.class)
+                .to(ProductDTO.class)
+                .build();
+
+        List<ProductEntity> sources = new ArrayList<>();
+        sources.add(new ProductEntity(1L, "A", BigDecimal.ONE, true));
+        sources.add(null);
+        sources.add(new ProductEntity(3L, "C", BigDecimal.TEN, false));
+
+        List<ProductDTO> dtos = mapper.mapAll(sources);
+
+        assertThat(dtos).hasSize(3);
+        assertThat(dtos.get(0).id()).isEqualTo(1L);
+        assertThat(dtos.get(1)).isNull();
+        assertThat(dtos.get(2).id()).isEqualTo(3L);
     }
 }

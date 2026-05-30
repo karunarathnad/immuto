@@ -86,4 +86,10 @@ class RecordIntrospectorTest {
                 .isInstanceOf(MappingException.class)
                 .hasMessageContaining("is not a Java record");
     }
+
+    @Test
+    void shallowCopy_nullSource_returnsNull() {
+        AddressDTO result = RecordIntrospector.shallowCopy(null, AddressDTO.class);
+        assertThat(result).isNull();
+    }
 }
