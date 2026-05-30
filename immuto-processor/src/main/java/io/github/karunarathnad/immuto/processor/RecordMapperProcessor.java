@@ -227,9 +227,9 @@ public class RecordMapperProcessor extends AbstractProcessor {
             TypeElement srcElem = asTypeElement(srcType);
             TypeElement tgtElem = asTypeElement(tgtType);
             if (srcElem != null && isRecord(srcElem) && tgtElem != null && isRecord(tgtElem)) {
-                // Inline shallow copy via RecordIntrospector
                 return MappingModel.direct(compName,
-                        "io.github.karunarathnad.immuto.core.RecordIntrospector.shallowCopy("
+                        sourceParam + "." + compName + "() == null ? null : "
+                                + "io.github.karunarathnad.immuto.core.RecordIntrospector.shallowCopy("
                                 + sourceParam + "." + compName + "(), "
                                 + tgtElem.getQualifiedName() + ".class)");
             }
@@ -245,7 +245,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
                     return MappingModel.direct(compName,
                             sourceParam + "." + compName + "() == null ? null : "
                                     + sourceParam + "." + compName + "().stream()"
-                                    + ".map(e -> io.github.karunarathnad.immuto.core.RecordIntrospector"
+                                    + ".map(e -> e == null ? null : io.github.karunarathnad.immuto.core.RecordIntrospector"
                                     + ".shallowCopy(e, " + tgtListElem.getQualifiedName() + ".class))"
                                     + ".collect(java.util.stream.Collectors.toUnmodifiableList())");
                 }
@@ -262,7 +262,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
                     return MappingModel.direct(compName,
                             sourceParam + "." + compName + "() == null ? null : "
                                     + sourceParam + "." + compName + "().stream()"
-                                    + ".map(e -> io.github.karunarathnad.immuto.core.RecordIntrospector"
+                                    + ".map(e -> e == null ? null : io.github.karunarathnad.immuto.core.RecordIntrospector"
                                     + ".shallowCopy(e, " + tgtSetElem.getQualifiedName() + ".class))"
                                     + ".collect(java.util.stream.Collectors.toUnmodifiableSet())");
                 }
@@ -281,7 +281,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
                                     + sourceParam + "." + compName + "().entrySet().stream()"
                                     + ".collect(java.util.stream.Collectors.toUnmodifiableMap("
                                     + "java.util.Map.Entry::getKey, "
-                                    + "e -> io.github.karunarathnad.immuto.core.RecordIntrospector"
+                                    + "e -> e.getValue() == null ? null : io.github.karunarathnad.immuto.core.RecordIntrospector"
                                     + ".shallowCopy(e.getValue(), " + tgtMapVal.getQualifiedName() + ".class)))");
                 }
             }
@@ -330,7 +330,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
                     TypeMirror fwdReturn = m.getReturnType();
                     TypeMirror fwdParam  = m.getParameters().get(0).asType();
                     return typeUtils.isSameType(fwdReturn, sourceElement.asType())
-                            || typeUtils.isSameType(fwdParam, targetElement.asType());
+                            && typeUtils.isSameType(fwdParam, targetElement.asType());
                 })
                 .findFirst();
 
@@ -487,21 +487,39 @@ public class RecordMapperProcessor extends AbstractProcessor {
 
     private String dotChain(String paramName, String dotPath) {
         String[] parts = dotPath.split("\\.");
-        StringBuilder sb = new StringBuilder(paramName);
-        for (String part : parts) sb.append(".").append(part).append("()");
-        return sb.toString();
+        StringBuilder result = new StringBuilder();
+        StringBuilder chain = new StringBuilder(paramName);
+        for (int i = 0; i < parts.length - 1; i++) {
+            chain.append(".").append(parts[i]).append("()");
+            result.append(chain).append(" == null ? null : ");
+        }
+        chain.append(".").append(parts[parts.length - 1]).append("()");
+        result.append(chain);
+        return result.toString();
     }
 
     private String constantExpression(String constant, TypeMirror targetType) {
         String typeName = targetType.toString();
+        String escaped = constant.replace("\\", "\\\\").replace("\"", "\\\"");
         return switch (typeName) {
-            case "java.lang.String"  -> "\"" + constant + "\"";
-            case "boolean", "java.lang.Boolean" -> constant;
-            case "int", "java.lang.Integer"     -> constant;
-            case "long", "java.lang.Long"       -> constant + "L";
-            case "double", "java.lang.Double"   -> constant + "d";
-            case "float", "java.lang.Float"     -> constant + "f";
-            default -> constant;
+            case "java.lang.String"              -> "\"" + escaped + "\"";
+            case "boolean", "java.lang.Boolean"  -> constant;
+            case "int", "java.lang.Integer"      -> constant;
+            case "long", "java.lang.Long"        -> constant + "L";
+            case "double", "java.lang.Double"    -> constant + "d";
+            case "float", "java.lang.Float"      -> constant + "f";
+            case "byte", "java.lang.Byte"        -> "(byte) " + constant;
+            case "short", "java.lang.Short"      -> "(short) " + constant;
+            case "char", "java.lang.Character"   -> "'" + constant + "'";
+            case "java.math.BigDecimal"          -> "new java.math.BigDecimal(\"" + escaped + "\")";
+            case "java.math.BigInteger"          -> "new java.math.BigInteger(\"" + escaped + "\")";
+            default -> {
+                TypeElement typeElement = asTypeElement(targetType);
+                if (typeElement != null && typeElement.getKind() == ElementKind.ENUM) {
+                    yield typeName + "." + constant;
+                }
+                yield constant;
+            }
         };
     }
 

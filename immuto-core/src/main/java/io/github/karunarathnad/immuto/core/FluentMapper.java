@@ -30,12 +30,18 @@ import java.util.function.Function;
  */
 public final class FluentMapper<S, T> {
 
+    private record RegisteredConverter(Class<?> sourceType, TypeConverter<?, ?> converter) {
+        boolean canHandle(Object value) {
+            return sourceType == null || value == null || sourceType.isInstance(value);
+        }
+    }
+
     private final Class<S> sourceClass;
     private final Class<T> targetClass;
     private final Map<String, Function<S, Object>> overrides;
     private final Map<String, String> renames;
     private final Set<String> ignored;
-    private final List<TypeConverter<?, ?>> converters;
+    private final List<RegisteredConverter> converters;
 
     private FluentMapper(Builder<S, T> builder) {
         this.sourceClass = builder.sourceClass;
@@ -102,13 +108,14 @@ public final class FluentMapper<S, T> {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private Object convert(Object value, Class<?> sourceType, Class<?> targetType, MappingContext ctx) {
-        // Try registered converters first — they may intentionally handle null values.
-        for (TypeConverter<?, ?> c : converters) {
-            TypeConverter converter = c;
+        for (RegisteredConverter rc : converters) {
+            if (!rc.canHandle(value)) continue;
+            TypeConverter converter = rc.converter();
             try {
                 return converter.convert(value, ctx);
-            } catch (ClassCastException ignored) {
-                // this converter is for a different type pair; try the next one
+            } catch (ClassCastException e) {
+                if (rc.sourceType() != null) throw e; // internal bug in typed converter — don't swallow
+                // untyped converter: CCE indicates type mismatch at dispatch, try next
             }
         }
 
@@ -146,7 +153,7 @@ public final class FluentMapper<S, T> {
         private final Map<String, Function<S, Object>> overrides = new LinkedHashMap<>();
         private final Map<String, String> renames = new LinkedHashMap<>();
         private final Set<String> ignored = new LinkedHashSet<>();
-        private final List<TypeConverter<?, ?>> converters = new ArrayList<>();
+        private final List<RegisteredConverter> converters = new ArrayList<>();
 
         private Builder(Class<S> sourceClass, Class<T> targetClass) {
             this.sourceClass = sourceClass;
@@ -182,7 +189,17 @@ public final class FluentMapper<S, T> {
 
         /** Registers a {@link TypeConverter} for use during this mapping. */
         public Builder<S, T> converter(TypeConverter<?, ?> converter) {
-            converters.add(converter);
+            converters.add(new RegisteredConverter(null, converter));
+            return this;
+        }
+
+        /**
+         * Registers a type-safe {@link TypeConverter} that only handles values
+         * of {@code sourceType}. Unlike the untyped overload, a {@link ClassCastException}
+         * thrown inside this converter is never swallowed — it propagates immediately.
+         */
+        public <C> Builder<S, T> converter(Class<C> sourceType, TypeConverter<C, ?> converter) {
+            converters.add(new RegisteredConverter(sourceType, converter));
             return this;
         }
 

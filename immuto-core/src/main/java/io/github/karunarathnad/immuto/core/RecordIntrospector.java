@@ -82,6 +82,7 @@ public final class RecordIntrospector {
      * @throws MappingException if target is not a record or construction fails
      */
     public static <T> T shallowCopy(Object source, Class<T> targetClass) {
+        if (source == null) return null;
         Map<String, ImmutoRecordComponent> sourceMap = componentMap(source.getClass());
         List<ImmutoRecordComponent> targetComponents = components(targetClass);
 
