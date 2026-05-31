@@ -3,21 +3,14 @@ package io.github.karunarathnad.immuto.test.fixtures;
 import io.github.karunarathnad.immuto.annotation.*;
 
 /**
- * Demonstrates the full feature set of Immuto in a single mapper:
- * expression mapping, nested records, List<Record>, lifecycle hooks,
- * bidirectional mapping.
+ * Demonstrates expression mapping, lifecycle hooks, and nested/list auto-mapping.
  */
 @RecordMapper
 public interface PersonMapper {
 
     @Mapping(target = "fullName",
              expression = "java(source.firstName() + \" \" + source.lastName())")
-    @Mapping(target = "address")     // nested record — auto shallow-copy
-    @Mapping(target = "phones")      // List<PhoneEntity> → List<PhoneDTO> auto
     PersonDTO toDto(PersonEntity source);
-
-    @InheritInverseConfiguration(name = "toDto")
-    PersonEntity toEntity(PersonDTO source);
 
     @BeforeMapping
     default void validateSource(PersonEntity source) {

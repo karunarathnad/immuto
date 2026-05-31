@@ -37,6 +37,14 @@ class RecordIntrospectorTest {
     }
 
     @Test
+    void componentMap_isCached() {
+        Map<String, ImmutoRecordComponent> first  = RecordIntrospector.componentMap(ProductEntity.class);
+        Map<String, ImmutoRecordComponent> second = RecordIntrospector.componentMap(ProductEntity.class);
+
+        assertThat(first).isSameAs(second);
+    }
+
+    @Test
     void componentMap_isKeyedByName() {
         Map<String, ImmutoRecordComponent> map = RecordIntrospector.componentMap(ProductEntity.class);
 
