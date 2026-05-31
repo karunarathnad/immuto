@@ -1,5 +1,6 @@
 package io.github.karunarathnad.immuto.core;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -52,6 +53,10 @@ public record ImmutoRecordComponent(
     public Object read(Object record) {
         try {
             return accessor.invoke(record);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            throw new MappingException(
+                    "Failed to read component '" + name + "' from " + record.getClass().getName(), cause);
         } catch (ReflectiveOperationException e) {
             throw new MappingException(
                     "Failed to read component '" + name + "' from " + record.getClass().getName(), e);

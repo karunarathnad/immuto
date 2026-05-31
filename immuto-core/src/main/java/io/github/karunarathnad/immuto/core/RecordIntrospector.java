@@ -24,6 +24,9 @@ public final class RecordIntrospector {
     private static final Map<Class<?>, List<ImmutoRecordComponent>> COMPONENT_CACHE =
             new ConcurrentHashMap<>();
 
+    private static final Map<Class<?>, Map<String, ImmutoRecordComponent>> COMPONENT_MAP_CACHE =
+            new ConcurrentHashMap<>();
+
     private RecordIntrospector() {}
 
     /**
@@ -35,11 +38,12 @@ public final class RecordIntrospector {
     }
 
     /**
-     * Returns the components as a name→component map.
+     * Returns the components as a name→component map. Results are cached.
      */
     public static Map<String, ImmutoRecordComponent> componentMap(Class<?> recordClass) {
-        return components(recordClass).stream()
-                .collect(Collectors.toUnmodifiableMap(ImmutoRecordComponent::name, Function.identity()));
+        return COMPONENT_MAP_CACHE.computeIfAbsent(recordClass, k ->
+                components(k).stream()
+                        .collect(Collectors.toUnmodifiableMap(ImmutoRecordComponent::name, Function.identity())));
     }
 
     /**

@@ -75,6 +75,17 @@ public final class MapperCodeGenerator {
             w.println("import java.util.List;");
             w.println("import java.util.stream.Collectors;");
         }
+        // Import target types that live in a different package from the generated impl
+        model.methods().stream()
+                .map(MapperMethodModel::targetTypeFqn)
+                .distinct()
+                .filter(fqn -> {
+                    int lastDot = fqn.lastIndexOf('.');
+                    String targetPkg = lastDot > 0 ? fqn.substring(0, lastDot) : "";
+                    return !targetPkg.isEmpty() && !targetPkg.equals(model.packageName());
+                })
+                .sorted()
+                .forEach(fqn -> w.println("import " + fqn + ";"));
         w.println();
     }
 
@@ -93,7 +104,6 @@ public final class MapperCodeGenerator {
 
     private void writeMethod(PrintWriter w, MapperMethodModel method) {
         String src = method.sourceParamName();
-        String targetFqn = method.targetTypeFqn();
         String returnType = method.isNullSafe()
                 ? "Optional<" + method.targetSimpleName() + ">"
                 : method.targetSimpleName();
@@ -112,7 +122,7 @@ public final class MapperCodeGenerator {
 
         // @BeforeMapping hook
         if (method.hasBeforeMapping()) {
-            w.println("        beforeMapping(" + src + ");");
+            w.println("        " + method.beforeMappingMethodName() + "(" + src + ");");
         }
 
         // build constructor call
@@ -129,7 +139,7 @@ public final class MapperCodeGenerator {
 
         // @AfterMapping hook
         if (method.hasAfterMapping()) {
-            w.println("        afterMapping(" + src + ", __result);");
+            w.println("        " + method.afterMappingMethodName() + "(" + src + ", __result);");
         }
 
         if (method.isNullSafe()) {
