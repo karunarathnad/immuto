@@ -120,9 +120,6 @@ public interface PersonMapper {
     @Mapping(target = "fullName",
              expression = "java(source.firstName() + \" \" + source.lastName())")
     PersonDTO toDto(PersonEntity source);
-
-    @InheritInverseConfiguration(name = "toDto")
-    PersonEntity toEntity(PersonDTO source);
 }
 ```
 
@@ -137,17 +134,21 @@ public final class PersonMapperImpl implements PersonMapper, ImmutoMapper {
     @Override
     public PersonDTO toDto(PersonEntity source) {
         if (source == null) return null;
-        return new PersonDTO(           // ← canonical constructor, never a setter
-            source.id(),               // -> id
+
+        PersonDTO __result = new PersonDTO(    // ← canonical constructor, never a setter
+            source.id(),                       // -> id
             source.firstName() + " " + source.lastName(),  // -> fullName  (expression)
-            source.email(),            // -> email
-            new AddressDTO(            // -> address  (nested record, same components)
-                source.address().street(),
-                source.address().city(),
-                source.address().postalCode(),
-                source.address().country()
-            )
+            source.email(),                    // -> email
+            source.address() == null ? null    // -> address  (null-guarded nested record)
+                : new com.example.AddressDTO(
+                    source.address().street(),
+                    source.address().city(),
+                    source.address().postalCode(),
+                    source.address().country()
+                )
         );
+
+        return __result;
     }
 }
 ```
@@ -245,10 +246,15 @@ Hook calls are inlined into the generated method body - no proxy, no AOP.
 ```java
 @NullSafe
 Optional<AddressDTO> toAddressDto(AddressEntity entity);
-// generates: return Optional.ofNullable(new AddressDTO(...))
+// generates: return Optional.of(new AddressDTO(...))
 ```
 
 ### Custom type converters
+
+> **Note:** `uses` and `qualifiedBy` in the annotation-processor path are not yet fully implemented.
+> Declaring them produces a compile-time warning and the attribute is currently ignored.
+> Use `FluentMapper.override(...)` for custom conversions when using the runtime API (see below),
+> or replace the component with an `@Mapping(expression = "java(...)")` in the APT path.
 
 ```java
 @Named("isoDate")
@@ -259,11 +265,12 @@ public class IsoDateConverter implements TypeConverter<LocalDate, String> {
     }
 }
 
-@RecordMapper(uses = IsoDateConverter.class)
-public interface EventMapper {
-    @Mapping(target = "date", qualifiedBy = "isoDate")
-    EventDTO toDto(EventEntity source);
-}
+// FluentMapper (runtime API) — TypeConverter support works today:
+FluentMapper<EventEntity, EventDTO> mapper = FluentMapper
+    .from(EventEntity.class)
+    .to(EventDTO.class)
+    .override("date", e -> e.date() == null ? null : e.date().toString())
+    .build();
 ```
 
 ### Spring / CDI integration

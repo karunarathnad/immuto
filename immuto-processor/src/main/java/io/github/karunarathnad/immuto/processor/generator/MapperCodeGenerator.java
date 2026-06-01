@@ -5,7 +5,6 @@ import io.github.karunarathnad.immuto.processor.model.MapperModel;
 import io.github.karunarathnad.immuto.processor.model.MappingModel;
 
 import javax.annotation.processing.Filer;
-import javax.lang.model.element.Modifier;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -21,7 +20,7 @@ import java.time.LocalDate;
  *   <li>Also implements {@link io.github.karunarathnad.immuto.core.ImmutoMapper}</li>
  *   <li>Calls each target record's <em>canonical constructor</em> — never a setter</li>
  *   <li>Handles {@code null} source by early-returning {@code null}</li>
- *   <li>Wraps results in {@code Optional.ofNullable} for {@code @NullSafe} methods</li>
+ *   <li>Wraps results in {@code Optional.of} for {@code @NullSafe} methods (null source returns {@code Optional.empty()} via early return)</li>
  * </ul>
  */
 public final class MapperCodeGenerator {
@@ -68,14 +67,9 @@ public final class MapperCodeGenerator {
         if (needsOptional) {
             w.println("import java.util.Optional;");
         }
-        boolean needsList = model.methods().stream()
-                .flatMap(m -> m.componentMappings().stream())
-                .anyMatch(cm -> cm.sourceExpression().contains("stream()"));
-        if (needsList) {
-            w.println("import java.util.List;");
-            w.println("import java.util.stream.Collectors;");
-        }
         // Import target types that live in a different package from the generated impl
+        // Note: stream/collection expressions in generated method bodies always use FQN
+        // (java.util.stream.Collectors, java.util.Map.Entry, etc.) — no extra imports needed.
         model.methods().stream()
                 .map(MapperMethodModel::targetTypeFqn)
                 .distinct()
