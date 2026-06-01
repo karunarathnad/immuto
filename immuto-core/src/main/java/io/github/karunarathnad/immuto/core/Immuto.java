@@ -35,7 +35,8 @@ public final class Immuto {
     }
 
     private static <T> T load(Class<T> mapperInterface) {
-        String implName = mapperInterface.getName() + "Impl";
+        String pkg = mapperInterface.getPackageName();
+        String implName = (pkg.isEmpty() ? "" : pkg + ".") + mapperInterface.getSimpleName() + "Impl";
         try {
             Class<?> implClass = Class.forName(implName, true, mapperInterface.getClassLoader());
             return mapperInterface.cast(implClass.getDeclaredConstructor().newInstance());

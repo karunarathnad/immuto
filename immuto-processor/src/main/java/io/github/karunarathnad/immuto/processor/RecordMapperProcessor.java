@@ -126,7 +126,9 @@ public class RecordMapperProcessor extends AbstractProcessor {
         }
 
         TypeMirror sourceMirror = method.getParameters().get(0).asType();
-        String sourceParamName  = method.getParameters().get(0).getSimpleName().toString();
+        // Always use "source" in generated code so @Mapping(expression="java(source.x())") works
+        // regardless of what the user named the interface method parameter.
+        String sourceParamName  = "source";
 
         // Unwrap Optional<T> for @NullSafe methods
         boolean isNullSafe = method.getAnnotation(NullSafe.class) != null;
@@ -163,7 +165,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
         InheritInverseConfiguration inherit = method.getAnnotation(InheritInverseConfiguration.class);
         if (inherit != null) {
             return buildInverseMethod(method, inherit, allMethods, sourceElement,
-                    targetElement, sourceParamName, isNullSafe);
+                    targetElement, sourceParamName, isNullSafe, mappingByTarget);
         }
 
         // Build component mappings for target record
@@ -194,8 +196,6 @@ public class RecordMapperProcessor extends AbstractProcessor {
             if (mappingModel != null) componentMappings.add(mappingModel);
         }
 
-        String ifaceSimple = iface.getSimpleName().toString();
-
         String beforeName = elementUtils.getAllMembers(iface).stream()
                 .filter(e -> e instanceof ExecutableElement ee
                         && ee.getAnnotation(BeforeMapping.class) != null
@@ -203,8 +203,11 @@ public class RecordMapperProcessor extends AbstractProcessor {
                 .map(e -> {
                     ExecutableElement ee = (ExecutableElement) e;
                     String name = ee.getSimpleName().toString();
-                    return ee.getModifiers().contains(Modifier.STATIC)
-                            ? ifaceSimple + "." + name : name;
+                    if (ee.getModifiers().contains(Modifier.STATIC)) {
+                        TypeElement declaring = (TypeElement) ee.getEnclosingElement();
+                        return declaring.getQualifiedName() + "." + name;
+                    }
+                    return name;
                 })
                 .findFirst().orElse(null);
 
@@ -215,8 +218,11 @@ public class RecordMapperProcessor extends AbstractProcessor {
                 .map(e -> {
                     ExecutableElement ee = (ExecutableElement) e;
                     String name = ee.getSimpleName().toString();
-                    return ee.getModifiers().contains(Modifier.STATIC)
-                            ? ifaceSimple + "." + name : name;
+                    if (ee.getModifiers().contains(Modifier.STATIC)) {
+                        TypeElement declaring = (TypeElement) ee.getEnclosingElement();
+                        return declaring.getQualifiedName() + "." + name;
+                    }
+                    return name;
                 })
                 .findFirst().orElse(null);
 
@@ -272,7 +278,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
             }
 
             if (override.ignore()) {
-                return MappingModel.ignored(compName);
+                return MappingModel.direct(compName, primitiveDefault(targetComp.asType()));
             }
             if (!override.expression().isEmpty()) {
                 // strip the "java(...)" wrapper if present
@@ -292,7 +298,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
                     if (part.isEmpty()) {
                         error(method, "@Mapping(target=\"" + compName + "\", source=\"" + srcPath + "\") "
                                 + "contains an empty path segment (check for consecutive or leading/trailing dots).");
-                        return MappingModel.ignored(compName);
+                        return MappingModel.direct(compName, primitiveDefault(targetComp.asType()));
                     }
                 }
                 return MappingModel.direct(compName, dotChain(sourceParam, srcPath));
@@ -312,7 +318,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
             error(method, "Target component '" + compName + "' has no matching source component. "
                     + "Use @Mapping(target=\"" + compName + "\", ignore=true) to suppress this error.");
         }
-        return MappingModel.ignored(compName);
+        return MappingModel.direct(compName, primitiveDefault(targetComp.asType()));
     }
 
     // -------------------------------------------------------------------------
@@ -326,7 +332,8 @@ public class RecordMapperProcessor extends AbstractProcessor {
             TypeElement sourceElement,
             TypeElement targetElement,
             String sourceParamName,
-            boolean isNullSafe) {
+            boolean isNullSafe,
+            Map<String, Mapping> ownMappings) {
 
         String forwardName = inherit.name();
         Optional<ExecutableElement> forwardMethod = allMethods.stream()
@@ -369,6 +376,17 @@ public class RecordMapperProcessor extends AbstractProcessor {
         Map<String, RecordComponentElement> newSourceMap = new ArrayList<>(newSource.getRecordComponents())
                 .stream().collect(Collectors.toMap(c -> c.getSimpleName().toString(), c -> c));
 
+        // Validate that own @Mapping targets on this inverse method name real target components
+        Set<String> targetComponentNames = newTarget.getRecordComponents().stream()
+                .map(c -> c.getSimpleName().toString())
+                .collect(Collectors.toSet());
+        for (String ownTarget : ownMappings.keySet()) {
+            if (!targetComponentNames.contains(ownTarget)) {
+                error(method, "@Mapping(target=\"" + ownTarget + "\") does not match any component "
+                        + "in " + newTarget.getSimpleName() + ". Available: " + targetComponentNames);
+            }
+        }
+
         // Expression-mapped forward targets cannot be automatically inverted
         Set<String> expressionMappedTargets = Arrays.stream(fwdMappings)
                 .filter(m -> !m.expression().isEmpty())
@@ -378,7 +396,58 @@ public class RecordMapperProcessor extends AbstractProcessor {
         for (RecordComponentElement targetComp : new ArrayList<>(newTarget.getRecordComponents())) {
             String compName = targetComp.getSimpleName().toString();
 
-            // Find a forward mapping that had this as its source → now it's our target
+            // 1. Explicit @Mapping override on this inverse method takes highest priority
+            Mapping ownOverride = ownMappings.get(compName);
+            if (ownOverride != null) {
+                if (!ownOverride.qualifiedBy().isEmpty()) {
+                    warn(method, "@Mapping(target=\"" + compName + "\", qualifiedBy=...) is not yet implemented; the qualifier is ignored.");
+                }
+                if (ownOverride.defaultForNull()) {
+                    warn(method, "@Mapping(target=\"" + compName + "\", defaultForNull=true) is not yet implemented; the flag is ignored.");
+                }
+                if (!ownOverride.defaultExpression().isEmpty()) {
+                    warn(method, "@Mapping(target=\"" + compName + "\", defaultExpression=...) is not yet implemented; the expression is ignored.");
+                }
+                if (ownOverride.ignore()) {
+                    invertedMappings.add(MappingModel.direct(compName, primitiveDefault(targetComp.asType())));
+                    continue;
+                }
+                if (!ownOverride.expression().isEmpty()) {
+                    String expr = ownOverride.expression().trim();
+                    if (expr.startsWith("java(") && expr.endsWith(")")) {
+                        expr = expr.substring(5, expr.length() - 1);
+                    }
+                    invertedMappings.add(MappingModel.direct(compName, expr));
+                    continue;
+                }
+                if (!ownOverride.constant().isEmpty()) {
+                    invertedMappings.add(MappingModel.direct(compName,
+                            constantExpression(ownOverride.constant(), targetComp.asType())));
+                    continue;
+                }
+                if (!ownOverride.source().isEmpty()) {
+                    String srcPath = ownOverride.source();
+                    boolean pathValid = true;
+                    for (String part : srcPath.split("\\.", -1)) {
+                        if (part.isEmpty()) {
+                            error(method, "@Mapping(target=\"" + compName + "\", source=\"" + srcPath + "\") "
+                                    + "contains an empty path segment.");
+                            invertedMappings.add(MappingModel.direct(compName, primitiveDefault(targetComp.asType())));
+                            pathValid = false;
+                            break;
+                        }
+                    }
+                    if (pathValid) {
+                        invertedMappings.add(MappingModel.direct(compName, dotChain(sourceParamName, srcPath)));
+                    }
+                    continue;
+                }
+                // @Mapping with no actionable attribute — warn and fall through to auto-invert
+                warn(method, "@Mapping(target=\"" + compName + "\") has no effect — no source, expression, "
+                        + "constant, or ignore attribute is set. Remove this annotation.");
+            }
+
+            // 2. Find a forward mapping that had this as its source → now it's our target
             Optional<Mapping> matchedForward = Arrays.stream(fwdMappings)
                     .filter(m -> m.source().equals(compName))
                     .findFirst();
@@ -392,14 +461,14 @@ public class RecordMapperProcessor extends AbstractProcessor {
                 }
             }
 
-            // Default: same name — use the shared type-aware helper to handle
+            // 3. Default: same name — use the shared type-aware helper to handle
             // record→record and List/Set/Map<Record> inversions correctly
             if (newSourceMap.containsKey(compName)) {
                 RecordComponentElement srcComp = newSourceMap.get(compName);
                 invertedMappings.add(autoMap(compName, srcComp.asType(), targetComp.asType(),
                         sourceParamName, method));
             } else {
-                // Component not in the inverse source — cannot auto-invert
+                // 4. Cannot auto-invert — error
                 String hint = expressionMappedTargets.isEmpty()
                         ? "it has no matching component in " + newSource.getSimpleName() + "."
                         : "the forward method used expression mapping(s) for: " + expressionMappedTargets + ".";
@@ -408,7 +477,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
                         + " Add @Mapping(target=\"" + compName + "\", expression=...) "
                         + "on this method to supply the inverse explicitly, "
                         + "or @Mapping(target=\"" + compName + "\", ignore=true) to suppress.");
-                invertedMappings.add(MappingModel.ignored(compName));
+                invertedMappings.add(MappingModel.direct(compName, primitiveDefault(targetComp.asType())));
             }
         }
 
@@ -482,9 +551,12 @@ public class RecordMapperProcessor extends AbstractProcessor {
         }
 
         if (isMap(srcType) && isMap(tgtType)) {
+            TypeMirror srcKey = typeArgument(srcType, 0);
+            TypeMirror tgtKey = typeArgument(tgtType, 0);
             TypeElement srcVal = asTypeElement(typeArgument(srcType, 1));
             TypeElement tgtVal = asTypeElement(typeArgument(tgtType, 1));
-            if (srcVal != null && isRecord(srcVal) && tgtVal != null && isRecord(tgtVal)) {
+            if (srcKey != null && tgtKey != null && typeUtils.isAssignable(srcKey, tgtKey)
+                    && srcVal != null && isRecord(srcVal) && tgtVal != null && isRecord(tgtVal)) {
                 String mapExpr = sourceParam + "." + compName + "()";
                 String valCtor = generateConstructorCall("e.getValue()", srcVal, tgtVal, method);
                 return MappingModel.direct(compName,
@@ -499,13 +571,14 @@ public class RecordMapperProcessor extends AbstractProcessor {
         error(method, "Cannot auto-convert component '" + compName + "': "
                 + srcType + " → " + tgtType
                 + ". Provide an explicit @Mapping or a TypeConverter.");
-        return MappingModel.ignored(compName);
+        return MappingModel.direct(compName, primitiveDefault(tgtType));
     }
 
     /**
      * Generates a direct, reflection-free constructor call expression for a record-to-record
      * mapping: {@code new TargetType(srcExpr.comp1(), srcExpr.comp2(), ...)}.
-     * Components present in the target but absent in the source receive {@code null}.
+     * Components present in the target but absent in the source receive the zero-value for
+     * primitive types or {@code null} for reference types.
      */
     private String generateConstructorCall(String srcExpr, TypeElement srcElem, TypeElement tgtElem,
             ExecutableElement method) {
@@ -520,7 +593,7 @@ public class RecordMapperProcessor extends AbstractProcessor {
                 MappingModel nested = autoMap(name, srcComp.asType(), tgtComp.asType(), srcExpr, method);
                 args.add(nested.sourceExpression());
             } else {
-                args.add("null");
+                args.add(primitiveDefault(tgtComp.asType()));
             }
         }
 
@@ -648,6 +721,17 @@ public class RecordMapperProcessor extends AbstractProcessor {
                 }
                 yield constant;
             }
+        };
+    }
+
+    private String primitiveDefault(TypeMirror type) {
+        return switch (type.getKind()) {
+            case BOOLEAN          -> "false";
+            case BYTE, SHORT, INT, CHAR -> "0";
+            case LONG             -> "0L";
+            case FLOAT            -> "0.0f";
+            case DOUBLE           -> "0.0d";
+            default               -> "null";
         };
     }
 

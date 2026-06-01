@@ -3,9 +3,11 @@ package io.github.karunarathnad.immuto.core;
 /**
  * SPI for custom type conversions used during record mapping.
  *
- * <p>Implement this interface and register it via
- * {@link io.github.karunarathnad.immuto.annotation.RecordMapper#uses()} to
- * convert a source component type {@code S} into a target component type {@code T}.
+ * <p>Implement this interface and register it with {@link FluentMapper.Builder#converter}
+ * to convert a source component type {@code S} into a target component type {@code T}.
+ * For the annotation-processor path, use
+ * {@code @Mapping(target = "field", expression = "java(...)")} instead — the
+ * {@code @RecordMapper(uses = ...)} attribute is not yet implemented.
  *
  * <pre>{@code
  * public class MoneyConverter implements TypeConverter<BigDecimal, MoneyDTO> {

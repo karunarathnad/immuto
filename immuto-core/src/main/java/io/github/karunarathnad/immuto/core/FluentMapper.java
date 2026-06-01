@@ -73,7 +73,7 @@ public final class FluentMapper<S, T> {
             String name = target.name();
 
             if (ignored.contains(name)) {
-                args[target.index()] = null;
+                args[target.index()] = primitiveDefault(target.type());
                 continue;
             }
 
@@ -87,8 +87,9 @@ public final class FluentMapper<S, T> {
             if (sourceComp != null) {
                 Object raw = sourceComp.read(source);
                 args[target.index()] = convert(raw, sourceComp.type(), target.type(), ctx);
+            } else {
+                args[target.index()] = primitiveDefault(target.type());
             }
-            // else: leave null — the record's canonical constructor will receive null
         }
         return RecordIntrospector.instantiate(targetClass, args);
     }
@@ -118,8 +119,8 @@ public final class FluentMapper<S, T> {
             }
         }
 
-        if (value == null) return null;
-        if (targetType.isAssignableFrom(sourceType)) return value;
+        if (value == null) return primitiveDefault(targetType);
+        if (toWrapper(targetType).isAssignableFrom(toWrapper(sourceType))) return value;
 
         if (targetType.isRecord() && sourceType.isRecord()) {
             return RecordIntrospector.shallowCopy(value, targetType);
@@ -127,6 +128,32 @@ public final class FluentMapper<S, T> {
 
         throw new MappingException(String.format(
                 "No converter found for %s → %s", sourceType.getName(), targetType.getName()));
+    }
+
+    private static Object primitiveDefault(Class<?> type) {
+        if (!type.isPrimitive()) return null;
+        if (type == boolean.class) return false;
+        if (type == char.class)    return '\0';
+        if (type == byte.class)    return (byte)  0;
+        if (type == short.class)   return (short) 0;
+        if (type == int.class)     return 0;
+        if (type == long.class)    return 0L;
+        if (type == float.class)   return 0.0f;
+        if (type == double.class)  return 0.0d;
+        return null;
+    }
+
+    private static Class<?> toWrapper(Class<?> type) {
+        if (!type.isPrimitive()) return type;
+        if (type == boolean.class) return Boolean.class;
+        if (type == byte.class)    return Byte.class;
+        if (type == char.class)    return Character.class;
+        if (type == short.class)   return Short.class;
+        if (type == int.class)     return Integer.class;
+        if (type == long.class)    return Long.class;
+        if (type == float.class)   return Float.class;
+        if (type == double.class)  return Double.class;
+        return type;
     }
 
     // -------------------------------------------------------------------------
