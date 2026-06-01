@@ -496,10 +496,6 @@ public class RecordMapperProcessor extends AbstractProcessor {
             }
         }
 
-        if (isOptional(srcType) && isOptional(tgtType)) {
-            return MappingModel.direct(compName, sourceParam + "." + compName + "()");
-        }
-
         error(method, "Cannot auto-convert component '" + compName + "': "
                 + srcType + " → " + tgtType
                 + ". Provide an explicit @Mapping or a TypeConverter.");
