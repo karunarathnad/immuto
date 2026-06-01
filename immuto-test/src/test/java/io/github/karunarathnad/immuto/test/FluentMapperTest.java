@@ -125,6 +125,59 @@ class FluentMapperTest {
         assertThat(dto.fullName()).isEqualTo("John Doe");
     }
 
+    record PrimRecord(long id, int count, double score) {}
+    record BoxedRecord(Long id, Integer count, Double score) {}
+
+    @Test
+    void primitiveToWrapper_mapsAutomatically() {
+        FluentMapper<PrimRecord, BoxedRecord> mapper = FluentMapper
+                .from(PrimRecord.class)
+                .to(BoxedRecord.class)
+                .build();
+
+        BoxedRecord result = mapper.map(new PrimRecord(42L, 7, 3.14));
+
+        assertThat(result.id()).isEqualTo(42L);
+        assertThat(result.count()).isEqualTo(7);
+        assertThat(result.score()).isEqualTo(3.14);
+    }
+
+    @Test
+    void wrapperToPrimitive_mapsAutomatically() {
+        FluentMapper<BoxedRecord, PrimRecord> mapper = FluentMapper
+                .from(BoxedRecord.class)
+                .to(PrimRecord.class)
+                .build();
+
+        PrimRecord result = mapper.map(new BoxedRecord(99L, 3, 1.5));
+
+        assertThat(result.id()).isEqualTo(99L);
+        assertThat(result.count()).isEqualTo(3);
+        assertThat(result.score()).isEqualTo(1.5);
+    }
+
+    @Test
+    void ignorePrimitiveComponent_usesZeroDefault() {
+        // .ignore() on a primitive target component must produce the zero-value, not null
+        // (passing null to Constructor.newInstance for a primitive parameter throws IAE)
+        record Src(long id, String name) {}
+        record Tgt(long id, String name, int count, boolean active) {}
+
+        FluentMapper<Src, Tgt> mapper = FluentMapper
+                .from(Src.class)
+                .to(Tgt.class)
+                .ignore("count")
+                .ignore("active")
+                .build();
+
+        Tgt result = mapper.map(new Src(1L, "test"));
+
+        assertThat(result.id()).isEqualTo(1L);
+        assertThat(result.name()).isEqualTo("test");
+        assertThat(result.count()).isEqualTo(0);
+        assertThat(result.active()).isFalse();
+    }
+
     @Test
     void mapAll_withNullElementsInList_preservesNulls() {
         FluentMapper<ProductEntity, ProductDTO> mapper = FluentMapper

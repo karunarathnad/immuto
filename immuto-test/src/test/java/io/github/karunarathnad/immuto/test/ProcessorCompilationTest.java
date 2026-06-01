@@ -1285,4 +1285,163 @@ class ProcessorCompilationTest {
         assertThat(compilation).hadErrorContaining("cannot auto-invert");
         assertThat(compilation).hadErrorContaining("lastName");
     }
+
+    @Test
+    void inheritInverseWithOwnMappingOverride_compilesAndAppliesOverride() {
+        // Forward PersonEntity(firstName, lastName) → PersonDTO(fullName) uses expression.
+        // Inverse cannot auto-invert fullName → firstName/lastName.
+        // Own @Mapping annotations on the inverse method must override the unresolvable components.
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.PersonEntity",
+                                "package test; public record PersonEntity(String firstName, String lastName) {}"),
+                        JavaFileObjects.forSourceString("test.PersonDTO",
+                                "package test; public record PersonDTO(String fullName) {}"),
+                        JavaFileObjects.forSourceString("test.PersonMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.*;
+                                @RecordMapper
+                                public interface PersonMapper {
+                                    @Mapping(target = "fullName",
+                                             expression = "java(source.firstName() + \\" \\" + source.lastName())")
+                                    PersonDTO toDto(PersonEntity source);
+
+                                    @InheritInverseConfiguration(name = "toDto")
+                                    @Mapping(target = "firstName", expression = "java(source.fullName().split(\\" \\")[0])")
+                                    @Mapping(target = "lastName",  expression = "java(source.fullName().split(\\" \\")[1])")
+                                    PersonEntity toEntity(PersonDTO source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeeded();
+        var src = assertThat(compilation).generatedSourceFile("test.PersonMapperImpl")
+                .contentsAsUtf8String();
+        src.contains("toEntity");
+        src.contains("fullName().split");
+    }
+
+    @Test
+    void mapWithIncompatibleKeyType_producesCompileError() {
+        // Map<String, EntityRecord> → Map<Integer, DtoRecord>: key types differ → Immuto error.
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.Val",
+                                "package test; public record Val(String v) {}"),
+                        JavaFileObjects.forSourceString("test.ValDTO",
+                                "package test; public record ValDTO(String v) {}"),
+                        JavaFileObjects.forSourceString("test.Src",
+                                "package test; import java.util.Map; public record Src(Map<String, Val> items) {}"),
+                        JavaFileObjects.forSourceString("test.Tgt",
+                                "package test; import java.util.Map; public record Tgt(Map<Integer, ValDTO> items) {}"),
+                        JavaFileObjects.forSourceString("test.SrcMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.RecordMapper;
+                                @RecordMapper
+                                public interface SrcMapper {
+                                    Tgt toTgt(Src source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("items");
+    }
+
+    @Test
+    void inheritInverseWithInvalidOwnMappingTarget_producesCompileError() {
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.A",
+                                "package test; public record A(Long id, String name) {}"),
+                        JavaFileObjects.forSourceString("test.B",
+                                "package test; public record B(Long id, String name) {}"),
+                        JavaFileObjects.forSourceString("test.TestMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.*;
+                                @RecordMapper
+                                public interface TestMapper {
+                                    B toB(A source);
+                                    @InheritInverseConfiguration(name = "toB")
+                                    @Mapping(target = "typo", source = "name")
+                                    A toA(B source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("typo");
+    }
+
+    @Test
+    void expressionMapping_worksRegardlessOfParameterName() {
+        // @Mapping(expression="java(source.x())") must work even when the interface method
+        // parameter is not named "source" — the generated code always uses "source" as the
+        // local variable name, matching the documented convention.
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.Person",
+                                "package test; public record Person(String firstName, String lastName) {}"),
+                        JavaFileObjects.forSourceString("test.PersonDTO",
+                                "package test; public record PersonDTO(String fullName) {}"),
+                        JavaFileObjects.forSourceString("test.PersonMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.*;
+                                @RecordMapper
+                                public interface PersonMapper {
+                                    @Mapping(target = "fullName",
+                                             expression = "java(source.firstName() + \\" \\" + source.lastName())")
+                                    PersonDTO toDto(Person entity);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeededWithoutWarnings();
+        assertThat(compilation).generatedSourceFile("test.PersonMapperImpl")
+                .contentsAsUtf8String()
+                .contains("public PersonDTO toDto(test.Person source)");
+    }
+
+    @Test
+    void ignorePrimitiveComponent_generatesZeroDefault() {
+        // @Mapping(ignore=true) on a primitive target component must generate the zero value
+        // (0, 0L, false, etc.) — not "null", which would be a compile error in the generated code.
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.Src",
+                                "package test; public record Src(long id, String name) {}"),
+                        JavaFileObjects.forSourceString("test.Tgt",
+                                "package test; public record Tgt(long id, String name, int count, boolean active) {}"),
+                        JavaFileObjects.forSourceString("test.SrcMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.*;
+                                @RecordMapper
+                                public interface SrcMapper {
+                                    @Mapping(target = "count", ignore = true)
+                                    @Mapping(target = "active", ignore = true)
+                                    Tgt toTgt(Src source);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeededWithoutWarnings();
+        var src = assertThat(compilation).generatedSourceFile("test.SrcMapperImpl")
+                .contentsAsUtf8String();
+        src.contains("// -> count");
+        src.contains("// -> active");
+        // primitive zero defaults — must not be "null" (which would fail to compile)
+        src.doesNotContain("null  // -> count");
+        src.doesNotContain("null  // -> active");
+    }
+
 }
