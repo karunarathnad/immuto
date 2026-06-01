@@ -372,6 +372,10 @@ PersonDTO dto        = mapper.map(entity);
 List<PersonDTO> dtos = mapper.mapAll(entities);
 ```
 
+> **Constraints:** `FluentMapper` matches components by name. Same-named components with compatible types
+> (including primitive↔wrapper pairs such as `long`↔`Long`) are mapped automatically. For other type
+> conversions use `override(...)` or a `TypeConverter`, or prefer the APT path.
+>
 > Note: `FluentMapper` *does* use `java.lang.reflect` to read record components at runtime -
 > it is the explicit opt-in fallback for when you cannot use the annotation processor.
 > The APT-generated path is always reflection-free.
