@@ -197,8 +197,23 @@ Tell the compiler plugin where to find the processor:
 
 ---
 
+## Want to see more?
+
+The **[Spring Boot Advanced Features](../spring-boot-advanced-features)** example covers the cases this quickstart intentionally skips:
+
+| Package | What it shows |
+|---|---|
+| `nested/` | Nested record + `List<Record>` auto-mapped with no extra declarations |
+| `collections/` | `Set<Record>` and `Map<K,Record>` collected into unmodifiable Set/Map |
+| `nullsafe/` | `@NullSafe` — null source returns `Optional.empty()` instead of NPE |
+| `hooks/` | `@BeforeMapping` for validation, `@AfterMapping` for audit logging |
+| `inverse/` | `@InheritInverseConfiguration` — reverse mapping derived automatically |
+| `dotnotation/` | `source = "origin.city"` flattens a nested field with null-safe accessor chain |
+
+---
+
 ## Further reading
 
-- [Immuto main README](../../README.md) - full annotation reference, FluentMapper API, comparison with MapStruct
+- [Immuto main README](../../Readme.md) - full annotation reference, FluentMapper API, comparison with MapStruct
 - [Maven Central](https://central.sonatype.com/namespace/io.github.karunarathnad) - published artifacts
 - [Issues & feedback](https://github.com/karunarathnad/immuto/issues)
