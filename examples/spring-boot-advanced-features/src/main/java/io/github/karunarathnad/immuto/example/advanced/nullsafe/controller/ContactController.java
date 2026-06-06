@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/contacts")
@@ -32,8 +33,7 @@ public class ContactController {
     public List<ContactDTO> list() {
         return STORE.values().stream()
             .map(mapper::toDto)
-            .filter(java.util.Optional::isPresent)
-            .map(java.util.Optional::get)
+            .flatMap(Optional::stream)
             .toList();
     }
 
