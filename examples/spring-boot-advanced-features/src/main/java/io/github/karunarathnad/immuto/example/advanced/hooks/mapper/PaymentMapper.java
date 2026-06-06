@@ -6,7 +6,6 @@ import io.github.karunarathnad.immuto.annotation.RecordMapper;
 import io.github.karunarathnad.immuto.example.advanced.hooks.model.PaymentDTO;
 import io.github.karunarathnad.immuto.example.advanced.hooks.model.PaymentEntity;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -26,9 +25,9 @@ public interface PaymentMapper {
     /** Validates required fields and rejects unsupported currencies before mapping proceeds. */
     @BeforeMapping
     default void validate(PaymentEntity source) {
-        Objects.requireNonNull(source.id(),        "payment id must not be null");
-        Objects.requireNonNull(source.currency(),  "currency must not be null");
-        Objects.requireNonNull(source.amount(),    "amount must not be null");
+        if (source.id()       == null) throw new IllegalArgumentException("payment id must not be null");
+        if (source.currency() == null) throw new IllegalArgumentException("currency must not be null");
+        if (source.amount()   == null) throw new IllegalArgumentException("amount must not be null");
         if (!Set.of("USD", "EUR", "GBP").contains(source.currency())) {
             throw new IllegalArgumentException("unsupported currency: " + source.currency());
         }
