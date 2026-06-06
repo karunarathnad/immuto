@@ -26,7 +26,7 @@ public class ProductController {
         return entities.stream().map(mapper::toDto).toList();
     }
 
-    // POST /products — accepts a DTO and maps back to entity using the auto-derived inverse.
+    // POST /products -- accepts a DTO and maps back to entity using the auto-derived inverse.
     @PostMapping
     public ProductEntity create(@RequestBody ProductDTO dto) {
         return mapper.toEntity(dto);

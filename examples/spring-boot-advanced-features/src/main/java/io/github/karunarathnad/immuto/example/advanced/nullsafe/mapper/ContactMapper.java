@@ -7,11 +7,17 @@ import io.github.karunarathnad.immuto.example.advanced.nullsafe.model.ContactEnt
 
 import java.util.Optional;
 
-// MapStruct has no @NullSafe equivalent — you write explicit null guards by hand.
-// @NullSafe tells the processor to generate:
-//   if (source == null) return Optional.empty();
-//   return Optional.of(new ContactDTO(...));
-// The generated method is safe to call with a null source without any NPE risk.
+/**
+ * Demonstrates {@code @NullSafe} Optional wrapping.
+ *
+ * <p>MapStruct has no {@code @NullSafe} equivalent -- you write explicit null guards by hand.
+ * {@code @NullSafe} tells the processor to generate:
+ * <pre>
+ *   if (source == null) return Optional.empty();
+ *   return Optional.of(new ContactDTO(...));
+ * </pre>
+ * The generated method is safe to call with a null source without any NPE risk.
+ */
 @RecordMapper(componentModel = "spring")
 public interface ContactMapper {
 

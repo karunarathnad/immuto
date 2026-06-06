@@ -5,11 +5,16 @@ import io.github.karunarathnad.immuto.annotation.RecordMapper;
 import io.github.karunarathnad.immuto.example.advanced.dotnotation.model.ShipmentDTO;
 import io.github.karunarathnad.immuto.example.advanced.dotnotation.model.ShipmentEntity;
 
-// Dot-notation in source paths lets you flatten a nested record into top-level DTO fields.
-// The processor generates null-safe accessor chains:
-//   source.origin() == null ? null : source.origin().city()
-// MapStruct supports dot-notation too, but only after its setters-first mapping pass —
-// Immuto applies null safety directly inside the canonical constructor call.
+/**
+ * Demonstrates dot-notation source paths to flatten a nested record into top-level DTO fields.
+ *
+ * <p>The processor generates null-safe accessor chains, for example:
+ * <pre>
+ *   source.origin() == null ? null : source.origin().city()
+ * </pre>
+ * MapStruct supports dot-notation too, but only after its setters-first mapping pass --
+ * Immuto applies null safety directly inside the canonical constructor call.
+ */
 @RecordMapper(componentModel = "spring")
 public interface ShipmentMapper {
 

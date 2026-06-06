@@ -25,7 +25,7 @@ public class ShipmentController {
         List<ShipmentEntity> entities = List.of(
             new ShipmentEntity(1L, "TRACK-AA001", new WarehouseEntity("WH-NY",  "New York",  "US")),
             new ShipmentEntity(2L, "TRACK-BB002", new WarehouseEntity("WH-LHR", "London",    "GB")),
-            // null origin — dot-notation generates a null guard so this does not NPE
+            // null origin -- dot-notation generates a null guard so this does not NPE
             new ShipmentEntity(3L, "TRACK-CC003", null)
         );
         return entities.stream().map(mapper::toDto).toList();

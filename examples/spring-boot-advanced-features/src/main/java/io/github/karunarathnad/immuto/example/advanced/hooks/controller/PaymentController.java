@@ -27,7 +27,7 @@ public class PaymentController {
         return entities.stream().map(mapper::toDto).toList();
     }
 
-    // POST /payments — validation hook fires before mapping;
+    // POST /payments -- validation hook fires before mapping;
     // audit hook logs after. Try currency "JPY" to see the validation error.
     @PostMapping
     public ResponseEntity<?> create(@RequestBody PaymentEntity entity) {

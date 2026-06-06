@@ -9,17 +9,21 @@ import io.github.karunarathnad.immuto.example.advanced.hooks.model.PaymentEntity
 import java.util.Objects;
 import java.util.Set;
 
-// @BeforeMapping and @AfterMapping are lifecycle hooks on the mapper interface.
-// The processor generates calls to these default methods around the mapping logic.
-// MapStruct supports the same concept but it is clumsy with records because records
-// have no setters — hook methods can only observe or throw, never mutate the target.
-// Immuto makes this explicit: @AfterMapping receives an already-constructed, immutable target.
+/**
+ * Demonstrates {@code @BeforeMapping} and {@code @AfterMapping} lifecycle hooks.
+ *
+ * <p>The processor generates calls to these default methods around the mapping logic.
+ * MapStruct supports the same concept but it is clumsy with records because records
+ * have no setters -- hook methods can only observe or throw, never mutate the target.
+ * Immuto makes this explicit: {@code @AfterMapping} receives an already-constructed,
+ * immutable target.
+ */
 @RecordMapper(componentModel = "spring")
 public interface PaymentMapper {
 
     PaymentDTO toDto(PaymentEntity source);
 
-    // Called before mapping — good for input validation and precondition checks.
+    /** Validates required fields and rejects unsupported currencies before mapping proceeds. */
     @BeforeMapping
     default void validate(PaymentEntity source) {
         Objects.requireNonNull(source.id(),        "payment id must not be null");
@@ -30,11 +34,10 @@ public interface PaymentMapper {
         }
     }
 
-    // Called after mapping — good for audit logging, metrics, or side effects.
-    // The target record is already constructed and immutable; this hook cannot change it.
+    /** Logs a structured audit line after the target record has been constructed. */
     @AfterMapping
     default void audit(PaymentEntity source, PaymentDTO target) {
-        System.out.printf("[AUDIT] payment %d mapped → %s %s (ref: %s)%n",
+        System.out.printf("[AUDIT] payment %d mapped -> %s %s (ref: %s)%n",
             target.id(), target.amount(), target.currency(), target.reference());
     }
 }

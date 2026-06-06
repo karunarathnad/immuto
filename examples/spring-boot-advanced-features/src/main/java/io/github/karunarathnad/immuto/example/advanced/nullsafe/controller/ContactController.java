@@ -27,7 +27,7 @@ public class ContactController {
         this.mapper = mapper;
     }
 
-    // GET /contacts — lists all contacts mapped to DTOs
+    // GET /contacts -- lists all contacts mapped to DTOs
     @GetMapping
     public List<ContactDTO> list() {
         return STORE.values().stream()
@@ -37,7 +37,7 @@ public class ContactController {
             .toList();
     }
 
-    // GET /contacts/{id} — returns 404 when not found instead of 500/NPE.
+    // GET /contacts/{id} -- returns 404 when not found instead of 500/NPE.
     // mapper.toDto(null) returns Optional.empty() thanks to @NullSafe.
     @GetMapping("/{id}")
     public ResponseEntity<ContactDTO> get(@PathVariable Long id) {
