@@ -1,6 +1,6 @@
 # Immuto + Spring Boot - Advanced Features
 
-A runnable Spring Boot 3 application demonstrating six [Immuto](https://github.com/karunarathnad/immuto) features
+A runnable Spring Boot 3 application demonstrating seven [Immuto](https://github.com/karunarathnad/immuto) features
 that MapStruct either cannot handle or requires significant workarounds for.
 
 Each feature lives in its own sub-package with its own model, mapper, and REST controller so you can
@@ -34,7 +34,39 @@ mvn spring-boot:run
 
 ## Features
 
-### 1. Nested record mapping — `GET /orders`
+### 1. Strict unmapped component policy — `GET /reports`
+
+**Package:** `strictmapping/`
+
+MapStruct's default policy for a target field with no matching source is `IGNORE` — the field is silently mapped to `null` and the build succeeds. Immuto's default is a **build error**.
+
+`ReportDTO` has a `version` component that does not exist in `ReportEntity`. Without `@Mapping(target = "version", ignore = true)` on the mapper, the build fails with:
+
+```
+error: [Immuto] Target component 'version' has no matching source component.
+       Use @Mapping(target="version", ignore=true) to suppress this error.
+       ReportDTO toDto(ReportEntity source);
+```
+
+The mapper makes the decision explicit:
+
+```java
+@RecordMapper(componentModel = "spring")
+public interface ReportMapper {
+    @Mapping(target = "version", ignore = true)
+    ReportDTO toDto(ReportEntity source);
+}
+```
+
+To reproduce the error: remove the `@Mapping` annotation and run `mvn compile`.
+
+```bash
+curl http://localhost:8081/reports
+```
+
+---
+
+### 3. Nested record mapping — `GET /orders`
 
 **Package:** `nested/`
 
@@ -56,7 +88,7 @@ curl http://localhost:8081/orders
 
 ---
 
-### 2. Collection mapping: `Set<Record>` and `Map<K, Record>` — `GET /catalogs`
+### 4. Collection mapping: `Set<Record>` and `Map<K, Record>` — `GET /catalogs`
 
 **Package:** `collections/`
 
@@ -80,7 +112,7 @@ curl http://localhost:8081/catalogs
 
 ---
 
-### 3. `@NullSafe` — `GET /contacts`, `GET /contacts/{id}`
+### 5. `@NullSafe` — `GET /contacts`, `GET /contacts/{id}`
 
 **Package:** `nullsafe/`
 
@@ -102,7 +134,7 @@ curl http://localhost:8081/contacts/99     # 404 Not Found — null source → O
 
 ---
 
-### 4. `@BeforeMapping` and `@AfterMapping` — `POST /payments`
+### 6. `@BeforeMapping` and `@AfterMapping` — `POST /payments`
 
 **Package:** `hooks/`
 
@@ -133,7 +165,7 @@ curl -X POST http://localhost:8081/payments \
 
 ---
 
-### 5. `@InheritInverseConfiguration` — `GET /products`, `POST /products`
+### 7. `@InheritInverseConfiguration` — `GET /products`, `POST /products`
 
 **Package:** `inverse/`
 
@@ -160,7 +192,7 @@ curl -X POST http://localhost:8081/products \
 
 ---
 
-### 6. Dot-notation source paths — `GET /shipments`
+### 8. Dot-notation source paths — `GET /shipments`
 
 **Package:** `dotnotation/`
 
@@ -191,9 +223,13 @@ spring-boot-advanced-features/
 ├── pom.xml
 └── src/main/java/io/github/karunarathnad/immuto/example/advanced/
     ├── AdvancedFeaturesApplication.java
+    ├── strictmapping/
+    │   ├── model/        ReportEntity, ReportDTO
+    │   ├── mapper/       ReportMapper.java
+    │   └── controller/   ReportController.java
     ├── nested/
     │   ├── model/        OrderEntity, OrderDTO, CustomerEntity, CustomerDTO, LineItemEntity, LineItemDTO
-    │   ├── mapper/       OrderMapper.java          ← you write this
+    │   ├── mapper/       OrderMapper.java
     │   └── controller/   OrderController.java
     ├── collections/
     │   ├── model/        CatalogEntity, CatalogDTO, TagEntity, TagDTO, CategoryEntity, CategoryDTO
