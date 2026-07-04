@@ -22,11 +22,11 @@ Immuto uses **canonical constructors** as the sole mapping target - no setters, 
 
 | Library | Records support | When code runs | Null safety | Sealed classes |
 |---|---|---|---|---|
-| MapStruct | Partial (bolted-on) | Compile-time APT → **setters first** | Manual | No |
+| MapStruct | Partial (bolted-on) | Compile-time APT → **setters first** | Manual | Partial (explicit `@SubclassMapping` per type) |
 | ModelMapper | Broken (reflection field-set) | **Runtime reflection** | No | No |
 | Orika | Broken (bytecode setters) | **Runtime bytecode gen** | No | No |
 | JMapper | Partial | **Runtime byte manipulation** | No | No |
-| **Immuto** | **First-class** | **Compile-time APT → canonical constructor** | **`@NullSafe`** | **Yes** |
+| **Immuto** | **First-class** | **Compile-time APT → canonical constructor** | **`@NullSafe`** | **Yes (auto-detected, no annotations needed)** |
 
 The key distinction from MapStruct: MapStruct generates setter calls and adapts to records only as a
 secondary concern. Immuto treats the canonical constructor as the *only* valid target - if a component
