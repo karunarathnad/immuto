@@ -1,4 +1,4 @@
-    # Immuto + Spring Boot — Advanced Features
+# Immuto + Spring Boot - Advanced Features
 
 A runnable Spring Boot 3 application demonstrating six [Immuto](https://github.com/karunarathnad/immuto) features
 that MapStruct either cannot handle or requires significant workarounds for.
