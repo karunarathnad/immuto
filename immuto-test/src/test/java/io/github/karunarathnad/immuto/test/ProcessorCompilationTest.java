@@ -1444,4 +1444,70 @@ class ProcessorCompilationTest {
         src.doesNotContain("null  // -> active");
     }
 
+    @Test
+    void sealedInterfaceOfRecords_perSubtypeMethods_compileSuccessfully() {
+        // A and B are records that happen to implement a sealed interface. Immuto only cares
+        // that each parameter/return type is itself a record — the sealed relationship is
+        // irrelevant to the processor, so one method per concrete subtype works with no
+        // special annotation, exactly like mapping any other two unrelated records.
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.From",
+                                "package test; public sealed interface From permits A, B {}"),
+                        JavaFileObjects.forSourceString("test.A",
+                                "package test; public record A(Long id, String name) implements From {}"),
+                        JavaFileObjects.forSourceString("test.B",
+                                "package test; public record B(Long id, int amount) implements From {}"),
+                        JavaFileObjects.forSourceString("test.ADto",
+                                "package test; public record ADto(Long id, String name) {}"),
+                        JavaFileObjects.forSourceString("test.BDto",
+                                "package test; public record BDto(Long id, int amount) {}"),
+                        JavaFileObjects.forSourceString("test.FromMapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.RecordMapper;
+                                @RecordMapper
+                                public interface FromMapper {
+                                    ADto map(A a);
+                                    BDto map(B b);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).succeededWithoutWarnings();
+        assertThat(compilation).generatedSourceFile("test.FromMapperImpl");
+    }
+
+    @Test
+    void sealedInterfaceAsSourceParam_producesCompileError() {
+        // Immuto has no equivalent of MapStruct's @SubclassMapping dispatch: a mapper method
+        // cannot accept the sealed supertype directly, because the source parameter must
+        // itself be a record. Callers must already know the concrete subtype.
+        Compilation compilation = javac()
+                .withProcessors(new RecordMapperProcessor())
+                .compile(
+                        JavaFileObjects.forSourceString("test.From2",
+                                "package test; public sealed interface From2 permits A2, B2 {}"),
+                        JavaFileObjects.forSourceString("test.A2",
+                                "package test; public record A2(Long id) implements From2 {}"),
+                        JavaFileObjects.forSourceString("test.B2",
+                                "package test; public record B2(Long id) implements From2 {}"),
+                        JavaFileObjects.forSourceString("test.ToDto2",
+                                "package test; public record ToDto2(Long id) {}"),
+                        JavaFileObjects.forSourceString("test.From2Mapper",
+                                """
+                                package test;
+                                import io.github.karunarathnad.immuto.annotation.RecordMapper;
+                                @RecordMapper
+                                public interface From2Mapper {
+                                    ToDto2 map(From2 from);
+                                }
+                                """)
+                );
+
+        assertThat(compilation).failed();
+        assertThat(compilation).hadErrorContaining("Source parameter type must be a Java record");
+    }
+
 }
