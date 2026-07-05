@@ -31,7 +31,8 @@ public final class FluentMapper<S, T> {
 
     private record RegisteredConverter(Class<?> sourceType, TypeConverter<?, ?> converter) {
         boolean canHandle(Object value) {
-            return sourceType == null || value == null || sourceType.isInstance(value);
+            if (sourceType == null) return true;
+            return sourceType.isInstance(value);
         }
     }
 
