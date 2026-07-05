@@ -45,21 +45,21 @@ cannot be mapped at compile time, the build fails with a clear error message.
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-annotations</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
 </dependency>
 
 <!-- Core: the only jar on your runtime classpath -->
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-core</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
 </dependency>
 
 <!-- Processor: runs during javac, never on the runtime classpath -->
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-processor</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -75,7 +75,7 @@ Tell the compiler plugin where to find the processor:
             <path>
                 <groupId>io.github.karunarathnad</groupId>
                 <artifactId>immuto-processor</artifactId>
-                <version>1.2.0</version>
+                <version>1.2.1</version>
             </path>
         </annotationProcessorPaths>
     </configuration>
@@ -86,9 +86,9 @@ Tell the compiler plugin where to find the processor:
 
 ```groovy
 dependencies {
-    implementation   'io.github.karunarathnad:immuto-core:1.2.0'
-    compileOnly      'io.github.karunarathnad:immuto-annotations:1.2.0'
-    annotationProcessor 'io.github.karunarathnad:immuto-processor:1.2.0'
+    implementation   'io.github.karunarathnad:immuto-core:1.2.1'
+    compileOnly      'io.github.karunarathnad:immuto-annotations:1.2.1'
+    annotationProcessor 'io.github.karunarathnad:immuto-processor:1.2.1'
 }
 ```
 
@@ -96,9 +96,9 @@ Or with the Kotlin DSL:
 
 ```kotlin
 dependencies {
-    implementation("io.github.karunarathnad:immuto-core:1.2.0")
-    compileOnly("io.github.karunarathnad:immuto-annotations:1.2.0")
-    annotationProcessor("io.github.karunarathnad:immuto-processor:1.2.0")
+    implementation("io.github.karunarathnad:immuto-core:1.2.1")
+    compileOnly("io.github.karunarathnad:immuto-annotations:1.2.1")
+    annotationProcessor("io.github.karunarathnad:immuto-processor:1.2.1")
 }
 ```
 
@@ -313,7 +313,7 @@ public class PersonService {
 
 ### `Collection<Record>` mapping
 
-Beyond `List`, Immuto 1.2.0 also generates mapping code for `Set<Record>` and `Map<K, Record>`:
+Beyond `List`, Immuto 1.2.1 also generates mapping code for `Set<Record>` and `Map<K, Record>`:
 
 ```java
 public record DeptEntity(Set<EmployeeEntity> members) {}
