@@ -162,17 +162,17 @@ spring-boot-quickstart/
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-core</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
 </dependency>
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-annotations</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
 </dependency>
 <dependency>
     <groupId>io.github.karunarathnad</groupId>
     <artifactId>immuto-processor</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -188,7 +188,7 @@ Tell the compiler plugin where to find the processor:
             <path>
                 <groupId>io.github.karunarathnad</groupId>
                 <artifactId>immuto-processor</artifactId>
-                <version>1.2.0</version>
+                <version>1.2.1</version>
             </path>
         </annotationProcessorPaths>
     </configuration>
