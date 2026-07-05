@@ -24,7 +24,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <immuto.version>1.2.0</immuto.version>
+        <immuto.version>1.2.1</immuto.version>
     </properties>
 
     <dependencies>
