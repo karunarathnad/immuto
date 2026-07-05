@@ -14,7 +14,7 @@
         Immuto — Java Records-first object mapper.
         An annotation processor generates type-safe mapper implementations at compile time;
         the generated code calls each target record's canonical constructor directly —
-        zero runtime reflection, sealed class support, full Java 21+ idioms.
+        zero runtime reflection, sealed-interface record subtypes, full Java 21+ idioms.
     </description>
     <url>https://github.com/karunarathnad/immuto</url>
 
