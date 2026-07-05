@@ -220,12 +220,12 @@ curl http://localhost:8081/shipments
 
 **Package:** `sealed/`
 
-MapStruct has no first-class support for mapping a `sealed` hierarchy — you either write a manual
-`instanceof` chain per implementation or fall back to a `default` case that silently swallows new
-subtypes as the hierarchy evolves. Because `NotificationEvent` is `sealed` and `permits` only
-`EmailEvent` and `SmsEvent`, Immuto generates an **exhaustive** mapping switch over every permitted
-subtype, with no `default` branch needed — and, more importantly, no fallback that could mask a
-missing case if a new subtype is added to the `permits` clause later.
+`MapStruct` has no first-class support for mapping a sealed hierarchy: you either write a 
+manual instanceof chain per implementation, or fall back to a default case that silently swallows 
+new subtypes as the hierarchy evolves. Because `NotificationEvent` is sealed and permits only 
+`EmailEvent` and `SmsEvent`, `Immuto` generates an exhaustive mapping switch over every permitted subtype, 
+with no default branch needed. More importantly, there's no fallback that could mask a missing 
+case if a new subtype is added to the permits clause later.
 
 ```java
 public sealed interface NotificationEvent permits EmailEvent, SmsEvent {}
