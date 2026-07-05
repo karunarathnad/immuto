@@ -45,6 +45,10 @@ public final class Immuto {
                     "No Immuto-generated implementation found for " + mapperInterface.getName()
                             + ". Expected class: " + implName
                             + ". Ensure immuto-processor is on the annotation processor path.", e);
+        } catch (ClassCastException e) {
+            throw new MappingException(
+                    "Generated class " + implName + " does not implement " + mapperInterface.getName()
+                            + ". Recompile the project to regenerate the mapper.", e);
         } catch (ReflectiveOperationException e) {
             throw new MappingException(
                     "Failed to instantiate " + implName, e);
