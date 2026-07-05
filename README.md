@@ -26,7 +26,7 @@ Immuto uses **canonical constructors** as the sole mapping target - no setters, 
 | ModelMapper | Not supported (reflection field-set) | **Runtime reflection** | No | No |
 | Orika | Not supported (bytecode setters) | **Runtime bytecode gen** | No | No |
 | JMapper | Partial | **Runtime byte manipulation** | No | No |
-| **Immuto** | **First-class** | **Compile-time APT → canonical constructor** | **`@NullSafe`** | **Yes (auto-detected, no annotations needed)** |
+| **Immuto** | **First-class** | **Compile-time APT → canonical constructor** | **`@NullSafe`** | **One method per concrete record subtype — no extra config** |
 
 The key distinction from MapStruct: MapStruct generates setter calls and adapts to records only as a
 secondary concern. Immuto treats the canonical constructor as the *only* valid target - if a component
@@ -401,11 +401,18 @@ io.github.karunarathnad
 | Records support | Partial - requires mutable builder workaround | First-class |
 | Validation timing | Compile time                                  | Compile time |
 | Runtime reflection | None (generated code)                         | None (generated code) |
-| Sealed classes | No                                            | Yes |
+| Sealed classes | Yes — via `@SubclassMapping` per subtype      | One method per concrete record subtype — no annotations needed |
 | `Optional` components | Manual                                        | `@NullSafe` |
 | `Set<Record>` / `Map<K,Record>` | Manual                                        | Auto-mapped |
 | Spring integration | `componentModel = "spring"`                   | `componentModel = "spring"` |
 | Fluent runtime API | No                                            | Yes (`FluentMapper`) |
+
+> **Sealed classes, precisely:** if every permitted subtype of a sealed interface is itself a record,
+> just declare one mapper method per concrete subtype (`ADto map(A a); BDto map(B b);`) — each is mapped
+> like any other record, no annotation required. This does **not** include dispatch on the sealed
+> supertype itself: a method like `ToDto map(From from)`, where `From` is the sealed interface, is
+> rejected at compile time because `From` is not a record. Immuto has no equivalent of MapStruct's
+> single-method-over-the-supertype dispatch — callers must already know the concrete subtype.
 
 ---
 
