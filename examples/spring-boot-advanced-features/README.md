@@ -66,7 +66,7 @@ curl http://localhost:8081/reports
 
 ---
 
-### 3. Nested record mapping — `GET /orders`
+### 2. Nested record mapping — `GET /orders`
 
 **Package:** `nested/`
 
@@ -88,7 +88,7 @@ curl http://localhost:8081/orders
 
 ---
 
-### 4. Collection mapping: `Set<Record>` and `Map<K, Record>` — `GET /catalogs`
+### 3. Collection mapping: `Set<Record>` and `Map<K, Record>` — `GET /catalogs`
 
 **Package:** `collections/`
 
@@ -112,7 +112,7 @@ curl http://localhost:8081/catalogs
 
 ---
 
-### 5. `@NullSafe` — `GET /contacts`, `GET /contacts/{id}`
+### 4. `@NullSafe` — `GET /contacts`, `GET /contacts/{id}`
 
 **Package:** `nullsafe/`
 
@@ -134,7 +134,7 @@ curl http://localhost:8081/contacts/99     # 404 Not Found — null source → O
 
 ---
 
-### 6. `@BeforeMapping` and `@AfterMapping` — `POST /payments`
+### 5. `@BeforeMapping` and `@AfterMapping` — `POST /payments`
 
 **Package:** `hooks/`
 
@@ -165,7 +165,7 @@ curl -X POST http://localhost:8081/payments \
 
 ---
 
-### 7. `@InheritInverseConfiguration` — `GET /products`, `POST /products`
+### 6. `@InheritInverseConfiguration` — `GET /products`, `POST /products`
 
 **Package:** `inverse/`
 
@@ -192,7 +192,7 @@ curl -X POST http://localhost:8081/products \
 
 ---
 
-### 8. Dot-notation source paths — `GET /shipments`
+### 7. Dot-notation source paths — `GET /shipments`
 
 **Package:** `dotnotation/`
 
