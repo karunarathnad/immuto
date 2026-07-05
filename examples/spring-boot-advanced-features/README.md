@@ -216,6 +216,38 @@ curl http://localhost:8081/shipments
 
 ---
 
+### 8. Sealed interface mapping — `GET /notifications`
+
+**Package:** `sealed/`
+
+MapStruct has no first-class support for mapping a `sealed` hierarchy — you either write a manual
+`instanceof` chain per implementation or fall back to a `default` case that silently swallows new
+subtypes as the hierarchy evolves. Because `NotificationEvent` is `sealed` and `permits` only
+`EmailEvent` and `SmsEvent`, Immuto generates an **exhaustive** mapping switch over every permitted
+subtype, with no `default` branch needed — and, more importantly, no fallback that could mask a
+missing case if a new subtype is added to the `permits` clause later.
+
+```java
+public sealed interface NotificationEvent permits EmailEvent, SmsEvent {}
+public record EmailEvent(Long id, String toAddress, String subject) implements NotificationEvent {}
+public record SmsEvent(Long id, String toNumber, String message) implements NotificationEvent {}
+
+public sealed interface NotificationEventDTO permits EmailEventDTO, SmsEventDTO {}
+public record EmailEventDTO(Long id, String toAddress, String subject) implements NotificationEventDTO {}
+public record SmsEventDTO(Long id, String toNumber, String message) implements NotificationEventDTO {}
+
+public interface NotificationEventMapper {
+    NotificationEventDTO toDto(NotificationEvent event);  // exhaustively maps every permitted subtype
+}
+```
+
+```bash
+curl http://localhost:8081/notifications
+# response mixes mapped EmailEventDTO and SmsEventDTO entries from a single polymorphic list
+```
+
+---
+
 ## Project structure
 
 ```
@@ -247,6 +279,10 @@ spring-boot-advanced-features/
     │   ├── model/        ProductEntity, ProductDTO
     │   ├── mapper/       ProductMapper.java
     │   └── controller/   ProductController.java
+    ├── sealed/
+    │   ├── model/        EmailEvent, NotificationEvent, SmsEvent, EmailEventDTO, NotificationEventDTO, SmsEventDTO
+    │   ├── mapper/       NotificationEventMapper.java
+    │   └── controller/   NotificationController.java
     └── dotnotation/
         ├── model/        ShipmentEntity, ShipmentDTO, WarehouseEntity
         ├── mapper/       ShipmentMapper.java
