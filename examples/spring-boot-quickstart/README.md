@@ -203,17 +203,19 @@ The **[Spring Boot Advanced Features](../spring-boot-advanced-features)** exampl
 
 | Package | What it shows |
 |---|---|
+| `strictmapping/` | Unmapped target component is a build error by default, not a silent `null` |
 | `nested/` | Nested record + `List<Record>` auto-mapped with no extra declarations |
 | `collections/` | `Set<Record>` and `Map<K,Record>` collected into unmodifiable Set/Map |
 | `nullsafe/` | `@NullSafe` — null source returns `Optional.empty()` instead of NPE |
 | `hooks/` | `@BeforeMapping` for validation, `@AfterMapping` for audit logging |
 | `inverse/` | `@InheritInverseConfiguration` — reverse mapping derived automatically |
 | `dotnotation/` | `source = "origin.city"` flattens a nested field with null-safe accessor chain |
+| `sealed/` | Sealed interface mapped exhaustively — one method per permitted record subtype |
 
 ---
 
 ## Further reading
 
-- [Immuto main README](../../Readme.md) - full annotation reference, FluentMapper API, comparison with MapStruct
+- [Immuto main README](../../README.md) - full annotation reference, FluentMapper API, comparison with MapStruct
 - [Maven Central](https://central.sonatype.com/namespace/io.github.karunarathnad) - published artifacts
 - [Issues & feedback](https://github.com/karunarathnad/immuto/issues)

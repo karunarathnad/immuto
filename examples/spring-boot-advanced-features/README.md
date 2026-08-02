@@ -1,6 +1,6 @@
 # Immuto + Spring Boot - Advanced Features
 
-A runnable Spring Boot 3 application demonstrating seven [Immuto](https://github.com/karunarathnad/immuto) features
+A runnable Spring Boot 3 application demonstrating eight [Immuto](https://github.com/karunarathnad/immuto) features
 that MapStruct either cannot handle or requires significant workarounds for.
 
 Each feature lives in its own sub-package with its own model, mapper, and REST controller so you can
@@ -297,6 +297,6 @@ processor during `mvn compile` and written to `target/generated-sources/annotati
 ## Further reading
 
 - [Spring Boot Quickstart](../spring-boot-quickstart) — basics: name-matched mapping, expressions, Spring injection
-- [Immuto main README](../../Readme.md) — full annotation reference, FluentMapper API, comparison with MapStruct
+- [Immuto main README](../../README.md) — full annotation reference, FluentMapper API, comparison with MapStruct
 - [Maven Central](https://central.sonatype.com/namespace/io.github.karunarathnad) — published artifacts
 - [Issues & feedback](https://github.com/karunarathnad/immuto/issues)

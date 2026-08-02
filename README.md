@@ -421,18 +421,20 @@ io.github.karunarathnad
 | Example | Description |
 |---|---|
 | [Spring Boot Quickstart](examples/spring-boot-quickstart) | Spring Boot 3 app with constructor injection, expression mapping, and a REST controller |
-| [Spring Boot Advanced Features](examples/spring-boot-advanced-features) | Six self-contained feature demos targeting the cases MapStruct cannot match (see below) |
+| [Spring Boot Advanced Features](examples/spring-boot-advanced-features) | Eight self-contained feature demos targeting the cases MapStruct cannot match (see below) |
 
 ### Advanced Features example — what each package shows
 
 | Package | Endpoint | Feature |
 |---|---|---|
+| `strictmapping/` | `GET /reports` | Unmapped target component is a **build error** by default, not a silent `null` |
 | `nested/` | `GET /orders` | Nested record + `List<Record>` auto-mapped — no `uses = {OtherMapper.class}` declarations needed |
 | `collections/` | `GET /catalogs` | `Set<Record>` and `Map<K,Record>` auto-collected into unmodifiable Set/Map |
 | `nullsafe/` | `GET /contacts/{id}` | `@NullSafe` returns `Optional.empty()` on a null source instead of NPE |
 | `hooks/` | `POST /payments` | `@BeforeMapping` validates input; `@AfterMapping` logs audit — both inlined around the constructor call |
 | `inverse/` | `POST /products` | `@InheritInverseConfiguration` derives the reverse rename without repeating the declaration |
 | `dotnotation/` | `GET /shipments` | `source = "origin.city"` flattens a nested record field with a generated null-safe accessor chain |
+| `sealed/` | `GET /notifications` | Sealed interface mapped exhaustively — one method per permitted record subtype, no default branch |
 
 ---
 
